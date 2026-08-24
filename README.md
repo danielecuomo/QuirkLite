@@ -1,82 +1,183 @@
-# <a href="http://algassert.com/quirk">Quirk <img src="doc/favicon.ico" alt="Icon" title="Icon" /></a>
+# QuirkLite
 
-[![Build Status](https://travis-ci.org/Strilanc/Quirk.svg?branch=master)](https://travis-ci.org/Strilanc/Quirk)
+QuirkLite is a lightweight, browser-based quantum circuit simulator derived from the Quirk project. It is designed for experimenting with small quantum circuits through an interactive drag-and-drop interface, without requiring a separate desktop application.
 
-Quirk is a toy quantum circuit simulator, intended to help people in learning about quantum computing.
+## What QuirkLite does
 
-If you want to quickly explore the behavior of a small quantum circuit, Quirk is the tool for you.
-There's no installing or configuring or scripting: just go to **[algassert.com/quirk](http://algassert.com/quirk)**, drag gates onto the circuit, and the output displays will update in real time.
+QuirkLite lets you build and inspect quantum circuits directly in a web browser. Gates can be placed on circuit wires and the simulator updates the displayed quantum state as the circuit changes.
 
-(If you're still trying to understand what a quantum circuit *even is*, then I recommend the video series [Quantum Computing for the Determined](https://www.youtube.com/playlist?list=PL1826E60FD05B44E4).
-Quirk assumes you already know background facts like "each wire represents a qubit".)
+### Key features
 
-**Defining features**:
+- **Drag-and-drop circuit editing** — place gates onto circuit wires and rearrange them interactively.
+- **Real-time simulation** — circuit results and state displays update as the circuit is edited.
+- **Quantum state visualization** — inspect amplitudes, probabilities, densities, samples, Bloch-sphere information, and other intermediate states using display gates.
+- **Circuit history** — undo and redo circuit changes.
+- **Bookmarkable circuits** — circuit state can be preserved in the browser URL and revisited later.
+- **Up to 16 qubits** — intended for small circuits that can be simulated interactively in a browser.
+- **Built-in examples** — includes examples such as Grover search, Shor period finding, Bell/CHSH testing, quantum teleportation, and other demonstrations.
+- **Standalone HTML output** — the build process produces a self-contained `out/quirk.html` file that can be opened directly in a browser.
 
-- Runs in web browsers.
-- Drag-and-drop circuit editing.
-- Reacts, simulates, and animates in real time.
-- Inline state displays.
-- Bookmarkable / linkable circuits.
-- Up to 16 qubits.
+## QuirkLite changes
 
-**Notable limitations**:
+QuirkLite is a customized version of Quirk with a simplified interface.
 
-- Can't recohere measured qubits (because measurement is implemented as a hack based on the [deferred measurement principle](https://en.wikipedia.org/wiki/Deferred_Measurement_Principle)).
+In particular, the **Make Gate** control and the **Version 2.3** label have been removed from the main interface. The application is intended to provide the core circuit-building and simulation experience without exposing the custom-gate creation control in the toolbar.
 
-**Try it out**:
+## Getting started
 
-**[algassert.com/quirk](http://algassert.com/quirk)**
+### Use the prebuilt application
 
-# Examples
+If a built version of QuirkLite is available, open:
 
-**Basic usage demo**:
+```text
+out/quirk.html
+```
 
-![Demo](/doc/README_Demo.gif)
+in a modern web browser.
 
-**Grover search circuit** with chance and sample displays (showing that the chance of success increases):
+Because the application is packaged into a single HTML file, no web server is required for the basic offline build.
 
-![Grover search](/doc/README_Grover.gif)
+### Run from the source tree
 
-**Quantum teleportation circuit** with Bloch sphere displays (showing that the qubit at the top has ended up at the bottom):
+Requirements:
 
-![Quantum teleportation](/doc/README_Teleportation.gif)
+- Git
+- Node.js
+- npm
+- A modern browser with JavaScript and WebGL support
 
-# Building
+Install the development dependencies:
 
-If you want to modify Quirk, this is how you get the code and turn your changes into working html/javascript.
+```bash
+npm install
+```
 
-1. Have [git](https://git-scm.com/) and [Node.js](https://nodejs.org/en/download/) installed.
+Build the application:
 
-    `sudo add-apt-repository universe`
-    
-    `sudo apt-get update`
-    
-    `sudo apt-get install --yes git npm nodejs-legacy`
+```bash
+npm run build
+```
 
-2. Clone the repository.
+The generated application will be written to:
 
-    `git clone https://github.com/Strilanc/Quirk.git`
+```text
+out/quirk.html
+```
 
-3. Install the dev dependencies.
+Open that file in a browser to run QuirkLite.
 
-    `cd Quirk`
-    
-    `npm install`
+## Development commands
 
-4. (*Optional*) Make your changes. Run the tests.
+The project uses Grunt for building and Karma for browser-based tests.
 
-    `npm run test-firefox`
+### Build
 
-5. Build the output.
+```bash
+npm run build
+```
 
-    `npm run build`
+Builds the production-style application and generates `out/quirk.html`.
 
-6. Confirm the output works by opening `out/quirk.html` with a web browser.
+### Run tests
 
-    `firefox out/quirk.html`
+```bash
+npm test
+```
 
-7. Copy `out/quirk.html` to wherever you want.
+### Run tests in Chrome
 
-# Disclaimer
+```bash
+npm run test-chrome
+```
 
-Quirk is not an official Google product.
+### Run tests in Firefox
+
+```bash
+npm run test-firefox
+```
+
+### CI-style test run
+
+```bash
+npm run test-travis
+```
+
+## Basic usage
+
+| Action | How |
+|---|---|
+| Add a gate | Drag a gate from the toolbox onto the circuit |
+| Move a gate | Drag the gate to another circuit position |
+| Remove a gate | Drag it out of the circuit or use middle-click |
+| Undo | `Ctrl+Z` or the **Undo** button |
+| Redo | `Ctrl+Shift+Z`, `Ctrl+Y`, or the **Redo** button |
+| Save a circuit | Bookmark the current page/URL |
+| Load a circuit | Open the saved bookmark |
+| Add a qubit | Drag a gate onto the additional wire shown while editing |
+| Remove a qubit | Rearrange the circuit so the bottom wire is unused |
+| Inspect intermediate state | Drag a display gate onto the circuit |
+| View gate tips | Hover over a gate |
+
+### Advanced editing
+
+- **Copy a gate:** `Shift` + drag.
+- **Move a column:** `Ctrl` + drag.
+- **Copy a column:** `Ctrl` + `Shift` + drag.
+
+The custom **Make Gate** workflow is intentionally not exposed by QuirkLite's main toolbar.
+
+## Included examples
+
+The application includes example circuits covering several quantum-computing concepts, including:
+
+- Grover search
+- Shor period finding
+- Bell inequality testing (CHSH)
+- Quantum teleportation
+- Supersdense coding
+- Delayed-choice eraser
+- Symmetry breaking
+- Quantum Fourier transform
+- Reversible addition
+- Magic-state distillation
+
+These examples are useful for quickly loading a non-trivial circuit and observing how the simulator represents its state.
+
+## Project structure
+
+```text
+QuirkLite/
+├── html/       # HTML templates and UI partials
+├── src/        # JavaScript source code
+│   ├── base/   # Core utilities and data structures
+│   ├── browser/# Browser integration
+│   ├── circuit/# Circuit model, serialization, evaluation
+│   ├── draw/   # Rendering utilities
+│   ├── gates/  # Quantum gates and state displays
+│   ├── math/   # Complex numbers, matrices, geometry, etc.
+│   └── ui/     # Circuit editor and user interface
+├── test/       # Unit and integration tests
+├── doc/        # Documentation and example media
+├── out/        # Generated browser application
+├── GruntFile.js
+├── package.json
+└── README.md
+```
+
+## Technical notes
+
+QuirkLite is primarily JavaScript and uses a browser-based rendering/simulation pipeline. The build system uses Traceur, Grunt, Uglify, and Karma. WebGL is used by the rendering and simulation components where supported.
+
+The simulator is optimized for small circuits rather than large-scale quantum computation. Increasing the number of qubits can rapidly increase memory use and simulation cost.
+
+## Known limitation
+
+Measurement behavior follows the simulator's existing implementation and is subject to the limitations of deferred-measurement-based handling. QuirkLite is intended as an educational and exploratory simulator, not as a replacement for a full quantum-computing backend.
+
+## License and attribution
+
+QuirkLite is derived from **Quirk**, an open-source quantum circuit simulator originally developed by Craig Gidney / Google contributors.
+
+The repository retains the original Apache License 2.0 licensing terms. See [`LICENSE`](LICENSE) for the full license text.
+
+QuirkLite is an independent customized application and is not an official Google product.
