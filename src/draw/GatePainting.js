@@ -37,9 +37,44 @@ GatePainting.paintOutline = args => {
     args.painter.strokeRect(args.rect, 'black');
 };
 
+GatePainting.paletteColorForGate = gate => {
+    let symbol = gate && gate.symbol || '';
+    if (symbol.indexOf('Measure') === 0 ||
+        symbol.indexOf('|0') === 0 || symbol.indexOf('|1') === 0 ||
+        symbol.indexOf('|+') === 0 || symbol.indexOf('|-') === 0 ||
+        symbol.indexOf('|i') === 0 || symbol.indexOf('•') === 0 || symbol.indexOf('◦') === 0) {
+        return '#F4D9D6'; // dusty rose
+    }
+    if (symbol.indexOf('Density') === 0 || symbol.indexOf('Bloch') === 0 ||
+        symbol.indexOf('Chance') === 0 || symbol.indexOf('Amps') === 0) {
+        return '#DCEFE2'; // mint
+    }
+    if (symbol === 'X' || symbol === 'Y' || symbol === 'Z' ||
+        symbol === 'H' || symbol === 'Swap') {
+        return '#E5DDF3'; // lavender
+    }
+    if (symbol.indexOf('^½') >= 0 || symbol.indexOf('^-½') >= 0 || symbol === 'S' || symbol === 'S^-1') {
+        return '#DCEAF5'; // powder blue
+    }
+    if (symbol === 'T' || symbol === 'T^-1' || symbol.indexOf('^¼') >= 0 || symbol.indexOf('^-¼') >= 0) {
+        return '#F3E1C9'; // peach
+    }
+    if (symbol === 'Reset') {
+        return '#DDECE5'; // soft sage
+    }
+    if (symbol.indexOf('^ft') >= 0 || symbol.indexOf('f(t)') >= 0 ||
+        symbol.indexOf('Rxft') === 0 || symbol.indexOf('Ryft') === 0 ||
+        symbol.indexOf('Rzft') === 0) {
+        return '#F1EBCF'; // pale yellow
+    }
+    return undefined;
+};
+
 GatePainting.paintBackground =
     (args, toolboxFillColor = Config.GATE_FILL_COLOR, normalFillColor = Config.GATE_FILL_COLOR) => {
-        let backColor = args.isInToolbox ? toolboxFillColor : normalFillColor;
+        let paletteColor = GatePainting.paletteColorForGate(args.gate);
+        let backColor = paletteColor ||
+            (args.isInToolbox ? (args.toolboxFillColor || toolboxFillColor) : normalFillColor);
         if (args.isHighlighted) {
             backColor = Config.HIGHLIGHTED_GATE_FILL_COLOR;
         }
@@ -56,7 +91,9 @@ GatePainting.LABEL_DRAWER = args => {
     }
 
     let cut = Math.max(0, args.rect.h - Config.GATE_RADIUS*2)/2;
-    args.painter.fillRect(args.rect.skipTop(cut).skipBottom(cut), Config.GATE_FILL_COLOR);
+    args.painter.fillRect(
+        args.rect.skipTop(cut).skipBottom(cut),
+        GatePainting.paletteColorForGate(args.gate) || Config.GATE_FILL_COLOR);
 
     GatePainting.paintGateSymbol(args);
 };

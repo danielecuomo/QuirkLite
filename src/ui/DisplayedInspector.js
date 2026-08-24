@@ -32,17 +32,13 @@ class DisplayedInspector {
      * @param {!Rect} drawArea
      * @param {!DisplayedCircuit} circuitWidget
      * @param {!DisplayedToolbox} displayedToolboxTop
-     * @param {!DisplayedToolbox} displayedToolboxBottom
      * @param {!Hand} hand
      */
-    constructor(drawArea, circuitWidget, displayedToolboxTop, displayedToolboxBottom, hand) {
+    constructor(drawArea, circuitWidget, displayedToolboxTop, hand) {
         /** @type {!DisplayedCircuit} */
         this.displayedCircuit = circuitWidget;
         /** @type {!DisplayedToolbox} */
         this.displayedToolboxTop = displayedToolboxTop;
-        /** @type {!DisplayedToolbox} */
-        this.displayedToolboxBottom = displayedToolboxBottom.
-            withCustomGatesInserted(circuitWidget.circuitDefinition.customGateSet);
         /** @type {!Hand} */
         this.hand = hand;
         /** @type {!Rect} */
@@ -54,9 +50,7 @@ class DisplayedInspector {
     desiredWidth() {
         return Math.max(
             this.displayedToolboxTop.desiredWidth(),
-            Math.max(
-                this.displayedCircuit.desiredWidth(),
-                this.displayedToolboxBottom.desiredWidth()));
+            this.displayedCircuit.desiredWidth());
     }
 
     /**
@@ -66,8 +60,6 @@ class DisplayedInspector {
         this.drawArea = drawArea;
 
         this.displayedToolboxTop = this.displayedToolboxTop.withTop(0);
-        this.displayedToolboxBottom = this.displayedToolboxBottom.withTop(
-            this.drawArea.bottom() - this.displayedToolboxBottom.desiredHeight());
     }
 
     /**
@@ -77,16 +69,10 @@ class DisplayedInspector {
     static empty(drawArea) {
         let topToolbox = new DisplayedToolbox('Toolbox', 0, Gates.TopToolboxGroups, true);
         let displayedCircuit = DisplayedCircuit.empty(topToolbox.desiredHeight());
-        let bottomToolbox = new DisplayedToolbox(
-            'Toolbox₂',
-            displayedCircuit.top + displayedCircuit.desiredHeight(),
-            Gates.BottomToolboxGroups,
-            false);
         return new DisplayedInspector(
             drawArea,
             displayedCircuit,
             topToolbox,
-            bottomToolbox,
             Hand.EMPTY);
     }
 
@@ -98,10 +84,8 @@ class DisplayedInspector {
         painter.fillRect(this.drawArea, Config.BACKGROUND_COLOR);
 
         this.displayedToolboxTop.paint(painter, stats, this.hand);
-        this.displayedToolboxBottom.paint(painter, stats, this.hand);
         this.displayedCircuit.paint(painter, this.hand, stats);
         this._paintHand(painter, stats);
-        this._drawHint(painter);
     }
 
     /**
@@ -175,7 +159,6 @@ class DisplayedInspector {
         let circuit = this.displayedCircuit;
 
         hand = this.displayedToolboxTop.tryGrab(hand);
-        hand = this.displayedToolboxBottom.tryGrab(hand);
         let obj = circuit.tryGrab(hand, duplicate, wholeCol, ignoreResizeTabs, alt);
         hand = obj.newHand;
         circuit = obj.newCircuit;
@@ -184,7 +167,6 @@ class DisplayedInspector {
             this.drawArea,
             circuit,
             this.displayedToolboxTop,
-            this.displayedToolboxBottom,
             hand);
     }
 
@@ -201,7 +183,6 @@ class DisplayedInspector {
             this.drawArea.isEqualTo(other.drawArea) &&
             this.displayedCircuit.isEqualTo(other.displayedCircuit) &&
             this.displayedToolboxTop.isEqualTo(other.displayedToolboxTop) &&
-            this.displayedToolboxBottom.isEqualTo(other.displayedToolboxBottom) &&
             this.hand.isEqualTo(other.hand);
     }
 
@@ -217,7 +198,6 @@ class DisplayedInspector {
             this.drawArea,
             displayedCircuit,
             this.displayedToolboxTop,
-            this.displayedToolboxBottom,
             this.hand);
     }
 
@@ -267,7 +247,6 @@ class DisplayedInspector {
     stableDuration() {
         return Math.min(
             this.displayedToolboxTop.stableDuration(this.hand),
-            this.displayedToolboxBottom.stableDuration(this.hand),
             this.hand.stableDuration(),
             this.displayedCircuit.stableDuration());
     }
@@ -281,7 +260,6 @@ class DisplayedInspector {
             this.drawArea,
             this.displayedCircuit,
             this.displayedToolboxTop,
-            this.displayedToolboxBottom,
             hand);
     }
 
@@ -294,7 +272,6 @@ class DisplayedInspector {
             this.drawArea,
             DisplayedCircuit.empty(this.displayedToolboxTop.desiredHeight()).withCircuit(newCircuitDefinition),
             this.displayedToolboxTop,
-            this.displayedToolboxBottom,
             this.hand.withDrop());
     }
 
@@ -303,7 +280,6 @@ class DisplayedInspector {
      */
     desiredHeight() {
         let minimumDesired =
-            this.displayedToolboxBottom.desiredHeight() +
             this.displayedToolboxTop.desiredHeight() +
             this.displayedCircuit.desiredHeight();
         return Math.max(Config.MINIMUM_CANVAS_HEIGHT, minimumDesired);
@@ -314,148 +290,6 @@ class DisplayedInspector {
      */
     snapshot() {
         return JSON.stringify(Serializer.toJson(this.displayedCircuit.circuitDefinition), null, 0);
-    }
-
-    _drawHint(painter) {
-        this._drawHint_dragGatesOntoCircuit(painter);
-        this._drawHint_watchOutputsChange(painter);
-        this._drawHint_useControls(painter);
-    }
-
-    /**
-     * @param {!Painter} painter
-     * @private
-     */
-    _drawHint_watchOutputsChange(painter) {
-        let visibilityFactor = this._hintVisibility();
-        if (visibilityFactor <= 0) {
-            return;
-        }
-
-        painter.ctx.save();
-        painter.ctx.globalAlpha *= Math.min(1, visibilityFactor);
-        painter.ctx.translate(this.displayedCircuit.opRect(this.displayedCircuit.clampedCircuitColCount()).x - 280, 15);
-
-        painter.ctx.save();
-        painter.ctx.translate(268, 250);
-        painter.ctx.rotate(Math.PI * 0.02);
-        painter.ctx.fillStyle = 'red';
-        painter.ctx.textAlign = 'right';
-        painter.ctx.font = '16px sans-serif';
-        painter.ctx.fillText("outputs change", 0, 0);
-        painter.ctx.restore();
-
-        painter.ctx.beginPath();
-        painter.ctx.moveTo(270, 245);
-        painter.ctx.bezierCurveTo(
-            300, 245,
-            315, 235,
-            325, 225);
-        painter.ctx.strokeStyle = 'red';
-        painter.ctx.lineWidth = 3;
-        painter.ctx.stroke();
-
-        painter.trace(tracer => {
-            tracer.arrowHead(330, 219, 10, Math.PI*-0.265, 1.3);
-        }).thenFill('red');
-
-        painter.ctx.restore();
-    }
-
-    _hintVisibility() {
-        if (this.displayedCircuit.circuitDefinition.columns.length > 0) {
-            return 0;
-        }
-        return this.hand.pos === undefined || !this.hand.isBusy() ? 1.0 :
-            this.hand.heldGate !== undefined && this.hand.heldGate.isControl() ? 1.0 :
-            (150-this.hand.pos.y)/50;
-    }
-
-
-    /**
-     * @param {!Painter} painter
-     * @private
-     */
-    _drawHint_dragGatesOntoCircuit(painter) {
-        let visibilityFactor = this._hintVisibility();
-        if (visibilityFactor <= 0) {
-            return;
-        }
-
-        painter.ctx.save();
-        painter.ctx.globalAlpha *= Math.min(1, visibilityFactor);
-
-        painter.ctx.save();
-        painter.ctx.translate(130, 195);
-        painter.ctx.rotate(Math.PI * 0.05);
-        painter.ctx.fillStyle = 'red';
-        painter.ctx.font = '16px sans-serif';
-        painter.ctx.fillText("drag gates onto circuit", 0, 0);
-        painter.ctx.restore();
-
-        painter.ctx.beginPath();
-        painter.ctx.moveTo(268, 132);
-        painter.ctx.bezierCurveTo(
-            260, 170,
-            235, 175,
-            217, 187);
-        painter.ctx.strokeStyle = 'red';
-        painter.ctx.lineWidth = 3;
-        painter.ctx.stroke();
-
-        painter.trace(tracer => {
-            tracer.arrowHead(210, 190, 10, Math.PI*0.84, 1.3);
-        }).thenFill('red');
-
-        painter.ctx.restore();
-    }
-
-    /**
-     * @param {!Painter} painter
-     * @private
-     */
-    _drawHint_useControls(painter) {
-        let visibilityFactor = this._hintVisibility();
-        if (visibilityFactor <= 0) {
-            return;
-        }
-        painter.ctx.save();
-        painter.ctx.globalAlpha *= Math.min(1, visibilityFactor);
-
-        let firstSlotAvailable = this.displayedCircuit.circuitDefinition.gateInSlot(0, 0) === undefined;
-        let fy = firstSlotAvailable ? 173 : 223;
-
-        painter.ctx.save();
-        painter.ctx.translate(70, fy-3);
-        painter.ctx.rotate(Math.PI * -0.01);
-        painter.ctx.fillStyle = 'red';
-        painter.ctx.font = '16px sans-serif';
-        painter.ctx.fillText("use controls", 0, 0);
-        painter.ctx.restore();
-
-        painter.ctx.beginPath();
-        if (firstSlotAvailable) {
-            painter.ctx.moveTo(90, 125);
-            painter.ctx.bezierCurveTo(
-                60, 140,
-                48, 160,
-                55, fy);
-        } else {
-            painter.ctx.moveTo(100, 125);
-            painter.ctx.bezierCurveTo(
-                115, 150,
-                105, 170,
-                55, fy);
-        }
-        painter.ctx.strokeStyle = 'red';
-        painter.ctx.lineWidth = 3;
-        painter.ctx.stroke();
-        painter.ctx.beginPath();
-        painter.ctx.arc(55, fy, 5, 0, 2 * Math.PI);
-        painter.ctx.fillStyle = 'red';
-        painter.ctx.fill();
-
-        painter.ctx.restore();
     }
 }
 

@@ -38,7 +38,15 @@ let isMiddleClicking = ev => ev.which === 2;
  */
 function eventPosRelativeTo(ev, element) {
     let b = element.getBoundingClientRect();
-    return new Point(ev.clientX - b.left, ev.clientY - b.top);
+    // The inspector is visually upscaled with CSS `zoom`. Pointer coordinates
+    // arrive in screen/CSS pixels, while Quirk's hit-test rectangles remain in
+    // the element's logical (pre-zoom) coordinate system. Convert back to
+    // logical coordinates before handing the point to the circuit/toolbox.
+    let scaleX = element.offsetWidth === 0 ? 1 : b.width / element.offsetWidth;
+    let scaleY = element.offsetHeight === 0 ? 1 : b.height / element.offsetHeight;
+    return new Point(
+        (ev.clientX - b.left) / scaleX,
+        (ev.clientY - b.top) / scaleY);
 }
 
 /**

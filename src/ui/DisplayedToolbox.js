@@ -28,6 +28,19 @@ import {seq} from "../base/Seq.js"
 import {WidgetPainter} from "../draw/WidgetPainter.js"
 
 class DisplayedToolbox {
+    // Soft, low-saturation colors for the visible toolbox groups.
+    static TOOLBOX_PALETTE = [
+        '#F4D9D6', // Probes - dusty rose
+        '#DCEFE2', // Displays - mint
+        '#E5DDF3', // Half Turns - lavender
+        '#DCEAF5', // Quarter Turns - powder blue
+        '#F3E1C9', // Eighth Turns - peach
+        '#F1EBCF', // Formulaic - pale yellow
+    ];
+
+    static toolboxColorForGroup(groupIndex) {
+        return DisplayedToolbox.TOOLBOX_PALETTE[groupIndex % DisplayedToolbox.TOOLBOX_PALETTE.length];
+    }
     /**
      * That thing showing gates you can grab.
      * @param {!string} name
@@ -79,6 +92,9 @@ class DisplayedToolbox {
      * @param {!CustomGateSet} customGateSet
      */
     withCustomGatesInserted(customGateSet) {
+        if (this._originalGroups.length === 0) {
+            return this;
+        }
         let groups = [...this._originalGroups];
         for (let i = 0; i < Math.max(1, customGateSet.gates.length); i += this.groupHeight*2) {
             let group = {
@@ -203,7 +219,7 @@ class DisplayedToolbox {
      * @param {!Hand} hand
      */
     paint(painter, stats, hand) {
-        painter.fillRect(this.curArea(painter.canvas.width), Config.BACKGROUND_COLOR_TOOLBOX);
+        painter.fillRect(this.curArea(painter.paintableArea().w), Config.BACKGROUND_COLOR_TOOLBOX);
         this._standardApperance.paint(0, this.top, painter);
         this._paintDeviations(painter, stats, hand);
     }
@@ -280,7 +296,7 @@ class DisplayedToolbox {
                 continue;
             }
             let rect = this.gateDrawRect(groupIndex, gateIndex);
-            DisplayedToolbox._paintGate(painter, hand, gate, rect, false, CircuitStats.EMPTY);
+            DisplayedToolbox._paintGate(painter, hand, gate, rect, false, CircuitStats.EMPTY, DisplayedToolbox.toolboxColorForGroup(groupIndex));
         }
     }
 
@@ -293,7 +309,7 @@ class DisplayedToolbox {
      * @param {!CircuitStats} stats
      * @private
      */
-    static _paintGate(painter, hand, gate, rect, isHighlighted, stats) {
+    static _paintGate(painter, hand, gate, rect, isHighlighted, stats, toolboxFillColor=undefined) {
         let drawer = gate.customDrawer || GatePainting.DEFAULT_DRAWER;
         painter.startIgnoringIncomingTouchBlockers();
         drawer(new GateDrawParams(
@@ -308,7 +324,8 @@ class DisplayedToolbox {
             stats,
             undefined, // positionInCircuit
             [], // focusPoints
-            undefined)); // customStatsForCircuitPos
+            undefined, // customStatsForCircuitPos
+            toolboxFillColor)); // toolboxFillColor
         painter.stopIgnoringIncomingTouchBlockers();
     }
 
@@ -326,7 +343,7 @@ class DisplayedToolbox {
         }
 
         // Draw highlight.
-        DisplayedToolbox._paintGate(painter, hand, f.gate, f.rect, true, stats);
+        DisplayedToolbox._paintGate(painter, hand, f.gate, f.rect, true, stats, DisplayedToolbox.toolboxColorForGroup(f.groupIndex));
 
         // Size tooltip.
         painter.ctx.save();
@@ -348,6 +365,9 @@ class DisplayedToolbox {
      * @returns {!number}
      */
     desiredWidth() {
+        if (this.toolboxGroups.length === 0) {
+            return 0;
+        }
         return this.gateDrawRect(this.toolboxGroups.length - 1, 5).right() + 5;
     }
 
@@ -356,6 +376,9 @@ class DisplayedToolbox {
      * @returns {!number}
      */
     desiredHeight() {
+        if (this.toolboxGroups.length === 0) {
+            return 0;
+        }
         return (1 + this.groupHeight) * (Config.GATE_RADIUS * 2 + 2) - Config.GATE_RADIUS;
     }
 

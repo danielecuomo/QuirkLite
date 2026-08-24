@@ -36,7 +36,7 @@ import {initializedWglContext} from "./webgl/WglContext.js"
 import {watchDrags, isMiddleClicking, eventPosRelativeTo} from "./browser/MouseWatcher.js"
 import {ObservableValue, ObservableSource} from "./base/Obs.js"
 import {initExports, obsExportsIsShowing} from "./ui/exports.js"
-import {initForge, obsForgeIsShowing} from "./ui/forge.js"
+import {obsForgeIsShowing} from "./ui/forge.js"
 import {initMenu, obsMenuIsShowing, closeMenu} from "./ui/menu.js"
 import {initUndoRedo} from "./ui/undo.js"
 import {initClear} from "./ui/clear.js"
@@ -144,8 +144,8 @@ const redrawNow = () => {
     mostRecentStats.set(stats);
 
     let size = desiredCanvasSizeFor(shown);
-    canvas.width = size.w;
-    canvas.height = size.h;
+    canvas.logicalWidth = size.w;
+    canvas.logicalHeight = size.h;
     let painter = new Painter(canvas, semiStableRng.cur.restarted());
     shown.updateArea(painter.paintableArea());
     shown.paint(painter, stats);
@@ -296,7 +296,6 @@ canvasDiv.addEventListener('mouseleave', () => {
 let obsIsAnyOverlayShowing = new ObservableSource();
 initUrlCircuitSync(revision);
 initExports(revision, mostRecentStats, obsIsAnyOverlayShowing.observable());
-initForge(revision, obsIsAnyOverlayShowing.observable());
 initUndoRedo(revision, obsIsAnyOverlayShowing.observable());
 initClear(revision, obsIsAnyOverlayShowing.observable());
 initMenu(revision, obsIsAnyOverlayShowing.observable());

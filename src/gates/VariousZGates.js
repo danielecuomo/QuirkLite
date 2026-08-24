@@ -32,13 +32,13 @@ VariousZGates.Z3i = Gate.fromKnownMatrix(
     undefined,
     VariousZGates.Z3);
 VariousZGates.Z4 = Gate.fromKnownMatrix(
-    "T",
+    "Z^¼",
     Matrix.fromPauliRotation(0, 0, 1 / 8),
     "Z^¼ Gate",
     "Principle fourth root of Z.",
     "Z^¼");
 VariousZGates.Z4i = Gate.fromKnownMatrix(
-    "T^-1",
+    "Z^-¼",
     Matrix.fromPauliRotation(0, 0, -1 / 8),
     "Z^-¼ Gate",
     "Adjoint fourth root of Z.",

@@ -43,7 +43,8 @@ class GateDrawParams {
                 stats,
                 positionInCircuit,
                 focusPoints,
-                customStatsForCircuitPos) {
+                customStatsForCircuitPos,
+                toolboxFillColor=undefined) {
         /** @type {!Painter} */
         this.painter = painter;
         /** @type {!Hand} */
@@ -68,6 +69,8 @@ class GateDrawParams {
         this.focusPoints = focusPoints;
         /** @type {undefined|*} */
         this.customStats = customStatsForCircuitPos;
+        /** @type {undefined|!string} */
+        this.toolboxFillColor = toolboxFillColor;
     }
 
     /**

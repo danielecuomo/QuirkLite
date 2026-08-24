@@ -23,14 +23,27 @@ import {Util} from "../base/Util.js"
 
 class Painter {
     /**
+     * Backing-store scale used to render Canvas content at higher resolution
+     * without changing Quirk's logical coordinate system.
+     */
+    static get RENDER_SCALE() { return 2; }
+    /**
      * @param {!HTMLCanvasElement} canvas
      * @param {!RestartableRng=} rng
      */
     constructor(canvas, rng = new RestartableRng()) {
         /** @type {!HTMLCanvasElement} */
         this.canvas = canvas;
+        // Canvas width/height are the backing-store dimensions. Keep the
+        // logical dimensions separately so all existing painting code keeps
+        // using the original coordinate system.
+        this.logicalWidth = canvas.logicalWidth === undefined ? canvas.width : canvas.logicalWidth;
+        this.logicalHeight = canvas.logicalHeight === undefined ? canvas.height : canvas.logicalHeight;
+        canvas.width = Math.max(1, Math.round(this.logicalWidth * Painter.RENDER_SCALE));
+        canvas.height = Math.max(1, Math.round(this.logicalHeight * Painter.RENDER_SCALE));
         /** @type {!CanvasRenderingContext2D} */
         this.ctx = canvas.getContext("2d");
+        this.ctx.scale(Painter.RENDER_SCALE, Painter.RENDER_SCALE);
         /**
          * @type {!Array.<!function()>}
          * @private
@@ -104,7 +117,7 @@ class Painter {
      * @returns {!Rect}
      */
     paintableArea() {
-        return new Rect(0, 0, this.canvas.width, this.canvas.height);
+        return new Rect(0, 0, this.logicalWidth, this.logicalHeight);
     }
 
     /**
@@ -112,7 +125,7 @@ class Painter {
      */
     clear(color = Config.DEFAULT_FILL_COLOR) {
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, this.logicalWidth, this.logicalHeight);
     }
 
     /**

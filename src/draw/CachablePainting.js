@@ -52,12 +52,13 @@ class CachablePainting {
         if (!this._cachedCanvases.has(key)) {
             let canvas = /** @type {!HTMLCanvasElement} */ document.createElement('canvas');
             let {width, height} = this.sizeFunc(key);
-            canvas.width = width;
-            canvas.height = height;
+            canvas.logicalWidth = width;
+            canvas.logicalHeight = height;
             this._drawingFunc(new Painter(canvas, fixedRng.restarted()), key);
             this._cachedCanvases.set(key, canvas);
         }
-        painter.ctx.drawImage(this._cachedCanvases.get(key), x, y);
+        let canvas = this._cachedCanvases.get(key);
+        painter.ctx.drawImage(canvas, x, y, canvas.logicalWidth, canvas.logicalHeight);
     }
 }
 

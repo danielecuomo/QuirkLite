@@ -75,7 +75,9 @@ function initForge(revision, obsIsAnyOverlayShowing) {
         button.disabled = true;
         let painter = new Painter(canvas);
         painter.clear();
-        let d = Math.min((canvas.width - 5)/2, canvas.height);
+        let pw = painter.paintableArea().w;
+        let ph = painter.paintableArea().h;
+        let d = Math.min((pw - 5)/2, ph);
         let rect1 = new Rect(0, 0, d, d);
         let rect2 = new Rect(d + 5, 0, d, d);
         try {
@@ -103,14 +105,14 @@ function initForge(revision, obsIsAnyOverlayShowing) {
                     Config.OPERATION_FORE_COLOR);
             }
             let cx = (rect1.right() + rect2.x)/2;
-            painter.strokeLine(new Point(cx, 0), new Point(cx, canvas.height), 'black', 2);
+            painter.strokeLine(new Point(cx, 0), new Point(cx, ph), 'black', 2);
             if (!op.hasNaN()) {
                 button.disabled = false;
             }
         } catch (ex) {
             painter.printParagraph(
                 ex+"",
-                new Rect(0, 0, canvas.width, canvas.height),
+                new Rect(0, 0, pw, ph),
                 new Point(0.5, 0.5),
                 'red',
                 24);

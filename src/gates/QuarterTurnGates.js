@@ -55,18 +55,16 @@ QuarterTurnGates.SqrtYBackward = new GateBuilder().
 
 /** @type {!Gate} */
 QuarterTurnGates.SqrtZForward = new GateBuilder().
-    setSerializedId('Z^½').
-    setSymbol('S').
-    setTitle("√Z Gate").
-    setBlurb("Principle square root of Z.\nAlso known as the 'S' gate.").
+    setSerializedIdAndSymbol('Z^½').
+    setTitle("Z^½ Gate").
+    setBlurb("Principle square root of Z.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0, 0, 0.25)).
     gate;
 
 /** @type {!Gate} */
 QuarterTurnGates.SqrtZBackward = new GateBuilder().
     setAlternate(QuarterTurnGates.SqrtZForward).
-    setSerializedId('Z^-½').
-    setSymbol('S^-1').
+    setSerializedIdAndSymbol('Z^-½').
     setTitle("Z^-½ Gate").
     setBlurb("Adjoint square root of Z.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0, 0, 0.75)).
