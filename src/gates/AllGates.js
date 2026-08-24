@@ -240,12 +240,6 @@ Gates.TopToolboxGroups = [
             ParametrizedRotationGates.FormulaicRotationX, ParametrizedRotationGates.FormulaicRotationRx,
         ]
     },
-    {
-        hint: "State",
-        gates: [
-            ResetGates.Reset, ResetGates.ResetOne
-        ]
-    },
 ];
 
 /** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
