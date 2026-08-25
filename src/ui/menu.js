@@ -19,7 +19,7 @@ function initMenu(revision, obsIsAnyOverlayShowing) {
         if (showing) closeMenuButton.focus();
     });
     const teleportAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-teleport');
-    teleportAnchor.href = 'quirk.html#circuit={%22cols%22:[[1,%22•%22,%22X%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[%22•%22,%22X%22],[%22H%22],[%22Measure%22,%22Measure%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22],[1,1,%22Bloch%22]],%22init%22:[0,%22+%22]}';
+    teleportAnchor.href = '#circuit={%22cols%22:[[1,%22•%22,%22X%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[%22•%22,%22X%22],[%22MeasureX%22,%22Measure%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22],[1,1,%22Bloch%22]],%22init%22:[0,%22+%22]}';
 }
 
 export {initMenu, obsMenuIsShowing, closeMenu}
