@@ -22,7 +22,7 @@ import {GatePainting} from "../draw/GatePainting.js"
  * @param {!GateDrawParams} args
  */
 function drawMeasurementGate(args) {
-    let backColor = args.toolboxFillColor || Config.GATE_FILL_COLOR;
+    let backColor = args.toolboxFillColor || '#F4D9D6';
     if (args.isHighlighted) {
         backColor = Config.HIGHLIGHTED_GATE_FILL_COLOR;
     }
