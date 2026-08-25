@@ -496,6 +496,13 @@ suite.test("nonUnitaryGates", () => {
     assertThat(c.columns[4].indexOfNonUnitaryGate()).isEqualTo(undefined);
 });
 
+suite.test("colIsWireCutMask", () => {
+    let c = circuit(`-WireCut--
+                     -------
+                     --WireCut-`, ['WireCut', Gates.WireCutGate]);
+    assertThat(Seq.range(c.columns.length + 2).map(i => c.colIsWireCutMask(i-1)).toArray()).isEqualTo([0, 0, 1, 1, 5, 5, 5, 5]);
+});
+
 suite.test("locIsMeasured", () => {
     let c = circuit(`-M---
                      ---M-

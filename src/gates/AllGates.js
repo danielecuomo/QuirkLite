@@ -61,6 +61,7 @@ import {UniversalNotGate} from "./Impossible_UniversalNotGate.js"
 import {VariousXGates} from "./VariousXGates.js"
 import {VariousYGates} from "./VariousYGates.js"
 import {VariousZGates} from "./VariousZGates.js"
+import {WireCutGate} from "./WireCutGate.js"
 import {XorGates} from "./XorGates.js"
 import {ZeroGate} from "./Joke_ZeroGate.js"
 import {seq} from "../base/Seq.js"
@@ -71,6 +72,7 @@ let Gates = {};
 Gates.Special = {
     Measurement: MeasurementGate,
     XMeasurement: XMeasurementGate,
+    WireCut: WireCutGate,
     SwapHalf: SwapGateHalf
 };
 /**
@@ -124,6 +126,7 @@ Gates.ReverseBitsGateFamily = ReverseBitsGateFamily;
 Gates.ResetGates = ResetGates;
 Gates.Detectors = Detectors;
 Gates.SpacerGate = SpacerGate;
+Gates.WireCutGate = WireCutGate;
 Gates.UniversalNot = UniversalNotGate;
 Gates.XorGates = XorGates;
 Gates.ZeroGate = ZeroGate;
@@ -136,6 +139,7 @@ Gates.KnownToSerializer = [
     XMeasurementGate,
     SwapGateHalf,
     SpacerGate,
+    WireCutGate,
     UniversalNotGate,
     ErrorInjectionGate,
     ZeroGate,
@@ -227,8 +231,9 @@ Gates.TopToolboxGroups = [
         ]
     },
     {
-        hint: "Permutations",
+        hint: "Gadgets",
         gates: [
+            WireCutGate,
             CycleBitsGates.CycleBitsFamily.ofSize(2),
         ]
     },

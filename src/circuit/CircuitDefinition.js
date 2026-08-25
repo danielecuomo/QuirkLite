@@ -96,7 +96,9 @@ class CircuitDefinition {
          * @private
          */
         this._measureMasks = [0];
+        this._wireCutMasks = [0];
         let mask = 0;
+        let wireCutMask = 0;
         let prevStickyCtx = new Map();
         for (let col of columns) {
             let {allReasons: rowReasons, stickyCtx} = col.perRowDisabledReasons(
@@ -105,9 +107,24 @@ class CircuitDefinition {
                 outerContext,
                 prevStickyCtx,
                 isNested);
+            // A wire cut removes the qubit from the circuit from the next column onward.
+            // Keep the row index stable for serialization, but make every later slot
+            // unavailable so gates cannot be inserted or interacted with past the cut.
+            for (let row = 0; row < this.numWires; row++) {
+                if ((wireCutMask & (1 << row)) !== 0 && rowReasons[row] === undefined) {
+                    rowReasons[row] = "wire ended";
+                }
+            }
             mask = col.nextMeasureMask(mask, rowReasons);
+            for (let row = 0; row < col.gates.length; row++) {
+                let gate = col.gates[row];
+                if (gate !== undefined && rowReasons[row] === undefined && gate.isWireCut) {
+                    wireCutMask |= 1 << row;
+                }
+            }
             this._colRowDisabledReason.push(rowReasons);
             this._measureMasks.push(mask);
+            this._wireCutMasks.push(wireCutMask);
             prevStickyCtx = stickyCtx;
         }
 
@@ -633,6 +650,18 @@ class CircuitDefinition {
             return 0;
         }
         return this._measureMasks[Math.min(col, this.columns.length)];
+    }
+
+    /**
+     * Returns the wires that have been permanently interrupted before the given column.
+     * @param {!int} col
+     * @returns {!int}
+     */
+    colIsWireCutMask(col) {
+        if (col < 0) {
+            return 0;
+        }
+        return this._wireCutMasks[Math.min(col, this.columns.length)];
     }
 
     /**

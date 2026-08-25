@@ -403,6 +403,11 @@ class DisplayedCircuit {
                         showLabels ? lastX < painter.paintableArea().w : col <= this.circuitDefinition.columns.length;
                         col++) {
                     let x = this.opRect(col).center().x;
+                    if ((this.circuitDefinition.colIsWireCutMask(col) & (1 << row)) !== 0) {
+                        // The wire was interrupted by a Wire Cut gate in an earlier column.
+                        // Do not draw anything after the interruption.
+                        break;
+                    }
                     if (this.circuitDefinition.locIsMeasured(new Point(col, row))) {
                         // Measured wire.
                         trace.line(lastX, y-1, x, y-1);
@@ -524,6 +529,9 @@ class DisplayedCircuit {
                 continue;
             }
             let gate = gateColumn.gates[row];
+            if (this.circuitDefinition.gateAtLocIsDisabledReason(col, row) !== undefined) {
+                continue;
+            }
             let gateRect = this.gateRect(row, col, gate.width, gate.height);
 
             let {isHighlighted, isResizeShowing, isResizeHighlighted} =
@@ -800,6 +808,12 @@ class DisplayedCircuit {
         }
 
         let addedGate = hand.heldGate;
+
+        // A wire that has been cut no longer exists. Do not allow gates to be
+        // dropped onto it or to be inserted into its later columns.
+        if (this.circuitDefinition.gateAtLocIsDisabledReason(modificationPoint.col, modificationPoint.row) !== undefined) {
+            return this;
+        }
 
         let emptyCol = GateColumn.empty(this.circuitDefinition.numWires);
         let i = modificationPoint.col;

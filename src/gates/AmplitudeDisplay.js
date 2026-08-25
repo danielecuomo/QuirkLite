@@ -23,7 +23,6 @@ import {Format} from "../base/Format.js"
 import {MathPainter} from "../draw/MathPainter.js"
 import {Matrix, complexVectorToReadableJson, realVectorToReadableJson} from "../math/Matrix.js"
 import {probabilityStatTexture} from "./ProbabilityDisplay.js"
-import {Point} from "../math/Point.js"
 import {Util} from "../base/Util.js"
 import {Shaders} from "../webgl/Shaders.js"
 import {WglConfiguredShader} from "../webgl/WglConfiguredShader.js"
@@ -271,29 +270,9 @@ const AMPLITUDE_DRAWER_FROM_CUSTOM_STATS = GatePainting.makeDisplayDrawer(args =
             (c, r) => `Amplitude of |${Util.bin(r*matrix.width() + c, args.gate.height)}⟩ (decimal ${r*matrix.width() + c})`,
             (c, r, v) => 'val:' + v.toString(new Format(false, 0, 5, ", ")),
             (c, r, v) => `mag²:${(v.norm2()*100).toFixed(4)}%, phase:${forceSign(v.phase() * 180 / Math.PI)}°`);
-        if (phaseLockIndex !== undefined) {
-            let cw = drawRect.w/matrix.width();
-            let rh = drawRect.h/matrix.height();
-            let c = phaseLockIndex % matrix.width();
-            let r = Math.floor(phaseLockIndex / matrix.width());
-            let cx = drawRect.x + cw*(c+0.5);
-            let cy = drawRect.y + rh*(r+0.5);
-            args.painter.strokeLine(
-                new Point(cx, cy),
-                new Point(cx + cw/2, cy),
-                `rgba(255,0,0,${indicatorAlpha})`,
-                2);
-            args.painter.print(
-                'fixed',
-                cx + 0.5*cw,
-                cy,
-                'right',
-                'bottom',
-                `rgba(255,0,0,${indicatorAlpha})`,
-                '12px monospace',
-                cw*0.5,
-                rh*0.5);
-        }
+        // Quirk internally chooses a phase reference so the displayed phases are
+        // relative to a well-defined global phase. Keep that calculation, but do
+        // not render the reference marker/"fixed" label in the Amps display.
     }
 
     paintErrorIfPresent(args, indicatorAlpha);
