@@ -28,6 +28,8 @@
                 <button id="undo-button" style="min-width: 50px; min-height: 30px;">Undo</button>
                 <button id="redo-button" style="min-width: 50px; min-height: 30px;">Redo</button>
                 &nbsp;
+                <button id="qasm-button" style="min-width: 90px; min-height: 30px;">OpenQASM</button>
+                &nbsp;
                 &nbsp;
                 <!-- Gate Forge remains internally available for compatibility, but is not exposed in QuirkLite. -->
                 <button id="gate-forge-button" style="display:none">Make Gate</button>
@@ -38,6 +40,20 @@
                 <canvas id="drawCanvas"></canvas>
             </div>
 
+
+            <div id="qasm-div" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.12); z-index:1000;">
+                <div id="qasm-window" style="position:fixed; left:0; top:0; transform:none; width:560px; height:360px; min-width:300px; min-height:180px; max-width:90vw; max-height:80vh; background:#111; border:1px solid #444; border-radius:6px; box-shadow:0 10px 35px rgba(0,0,0,0.35); overflow:hidden; display:flex; flex-direction:column;">
+                    <div id="qasm-titlebar" style="height:30px; flex:0 0 30px; background:#1b1b1b; border-bottom:1px solid #303030; display:flex; align-items:center; padding:0 10px; box-sizing:border-box; color:#aaa; font-family:monospace; font-size:12px; cursor:move; user-select:none;">
+                        <span>OpenQASM 3.0</span>
+                    </div>
+                    <textarea id="qasm-textarea" readonly spellcheck="false" style="flex:1; width:100%; box-sizing:border-box; resize:none; border:0; outline:0; background:#111; color:#e6e6e6; font-family:Menlo,Monaco,Consolas,monospace; font-size:12px; line-height:1.45; padding:12px 14px;"></textarea>
+                    <div style="height:38px; flex:0 0 38px; background:#181818; border-top:1px solid #303030; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; box-sizing:border-box;">
+                        <button id="qasm-copy-button" style="min-width:54px; min-height:25px; margin-right:6px; background:#292929; color:#ddd; border:1px solid #4d4d4d; border-radius:3px; font-family:monospace; font-size:11px; cursor:pointer;">Copy</button>
+                        <button id="qasm-close-button" style="min-width:54px; min-height:25px; background:#292929; color:#ddd; border:1px solid #4d4d4d; border-radius:3px; font-family:monospace; font-size:11px; cursor:pointer;">Close</button>
+                    </div>
+                    <div id="qasm-resize-handle" style="position:absolute; right:0; bottom:0; width:14px; height:14px; cursor:nwse-resize;"></div>
+                </div>
+            </div>
 
             <!-- INCLUDE FORGE PART -->
         </div>
@@ -109,6 +125,345 @@ document.DEFAULT_CIRCUIT = undefined;
 // UN-MINIFIED SOURCE IS AVAILABLE FROM github.com/Strilanc/Quirk
 
 <!-- INCLUDE SOURCE PART -->
+
+
+// OpenQASM export. The circuit is read from Quirk's URL state so the
+// feature works in both the source build and the standalone generated page.
+(function() {
+    const qasmButton = document.getElementById('qasm-button');
+    const qasmDiv = document.getElementById('qasm-div');
+
+    // Move the overlay to <body>. Quirk contains transformed/layout wrappers,
+    // which can otherwise change the containing block of position:fixed/absolute.
+    // Keeping the QASM window directly under body makes viewport centering reliable.
+    document.body.appendChild(qasmDiv);
+    const qasmText = document.getElementById('qasm-textarea');
+    const qasmCopy = document.getElementById('qasm-copy-button');
+    const qasmClose = document.getElementById('qasm-close-button');
+
+    function gateInfo(raw) {
+        if (raw === undefined || raw === 1) return undefined;
+        if (typeof raw === 'string') return {id: raw, arg: undefined};
+        if (raw && typeof raw === 'object') return {id: raw.id || '', arg: raw.arg};
+        return undefined;
+    }
+
+    function qasmAngle(arg) {
+        if (typeof arg === 'number') return String(arg);
+        if (typeof arg !== 'string') return undefined;
+        const s = arg.trim();
+        if (/^[-+]?pi(?:\/[-+]?\d+(?:\.\d+)?)?$/.test(s)) return s;
+        if (/^[-+]?\d+(?:\.\d+)?$/.test(s)) return s;
+        return undefined;
+    }
+
+    function emitSingle(id, row, arg) {
+        const q = `q[${row}]`;
+        const a = qasmAngle(arg);
+        switch (id) {
+            case 'X': return `x ${q};`;
+            case 'Y': return `y ${q};`;
+            case 'Z': return `z ${q};`;
+            case 'H': return `h ${q};`;
+            case 'X^½': return `rx(pi/2) ${q};`;
+            case 'X^-½': return `rx(-pi/2) ${q};`;
+            case 'X^¼': return `rx(pi/4) ${q};`;
+            case 'X^-¼': return `rx(-pi/4) ${q};`;
+            case 'X^⅛': return `rx(pi/8) ${q};`;
+            case 'X^-⅛': return `rx(-pi/8) ${q};`;
+            case 'Y^½': return `ry(pi/2) ${q};`;
+            case 'Y^-½': return `ry(-pi/2) ${q};`;
+            case 'Y^¼': return `ry(pi/4) ${q};`;
+            case 'Y^-¼': return `ry(-pi/4) ${q};`;
+            case 'Y^⅛': return `ry(pi/8) ${q};`;
+            case 'Y^-⅛': return `ry(-pi/8) ${q};`;
+            case 'Z^½': return `rz(pi/2) ${q};`;
+            case 'Z^-½': return `rz(-pi/2) ${q};`;
+            case 'Z^¼': return `rz(pi/4) ${q};`;
+            case 'Z^-¼': return `rz(-pi/4) ${q};`;
+            case 'Z^⅛': return `rz(pi/8) ${q};`;
+            case 'Z^-⅛': return `rz(-pi/8) ${q};`;
+            case 'Measure': return `measure ${q} -> c[${row}];`;
+            case '|0>': return `reset ${q};`;
+            case '|1>': return `x ${q};`;
+            case 'S': return `s ${q};`;
+            case 'S†': return `sdg ${q};`;
+            case 'T': return `t ${q};`;
+            case 'T†': return `tdg ${q};`;
+            case 'Rx':
+            case 'Ry':
+            case 'Rz':
+                return a === undefined ? undefined : `${id.toLowerCase()}(${a}) ${q};`;
+            default: return undefined;
+        }
+    }
+
+    function controlledLine(baseId, controls, target) {
+        if (controls.length === 0) return undefined;
+        const anti = controls.filter(c => c.anti);
+        const cRows = controls.map(c => c.row);
+        const t = `q[${target}]`;
+
+        let op;
+        if (cRows.length === 1) {
+            const c = `q[${cRows[0]}]`;
+            if (baseId === 'X') op = `cx ${c},${t};`;
+            else if (baseId === 'Y') op = `cy ${c},${t};`;
+            else if (baseId === 'Z') op = `cz ${c},${t};`;
+            else if (baseId === 'Swap') op = undefined;
+            if (op !== undefined && anti.length === 0) return op;
+            if (op !== undefined && anti.length === 1) {
+                return `x ${c};\n${op}\nx ${c};`;
+            }
+        }
+
+        if (baseId === 'X' && cRows.length === 2 && anti.length === 0) {
+            return `ccx q[${cRows[0]}],q[${cRows[1]}],${t};`;
+        }
+
+        return undefined;
+    }
+
+    function circuitToQasm(circuit) {
+        const cols = Array.isArray(circuit.cols) ? circuit.cols : [];
+        const init = Array.isArray(circuit.init) ? circuit.init : [];
+        let n = Math.max(init.length, ...cols.map(c => Array.isArray(c) ? c.length : 0), 1);
+
+        // Formulaic Quirk gates use an external OpenQASM parameter named t.
+        // The concrete formula/value stored by Quirk is intentionally ignored.
+        const hasFormulaicGate = cols.some(col =>
+            Array.isArray(col) && col.some(raw => {
+                const g = gateInfo(raw);
+                return g && (g.id === 'Rxft' || g.id === 'Ryft' || g.id === 'Rzft');
+            })
+        );
+
+        const out = [
+            'OPENQASM 3.0;',
+            'include "stdgates.inc";',
+            ...(hasFormulaicGate ? ['input float[64] t;', ''] : []),
+            `qubit[${n}] q;`,
+            `bit[${n}] c;`,
+            ''
+        ];
+
+        // Translate Quirk's supported initial-state shortcuts.
+        for (let r = 0; r < init.length; r++) {
+            const v = init[r];
+            if (v === 1) out.push(`x q[${r}];`);
+            else if (v === '+') out.push(`h q[${r}];`);
+            else if (v === '-') out.push(`h q[${r}];`, `z q[${r}];`);
+            else if (v === 'i') out.push(`h q[${r}];`, `s q[${r}];`);
+            else if (v === '-i') out.push(`h q[${r}];`, `sdg q[${r}];`);
+        }
+
+        for (let colIndex = 0; colIndex < cols.length; colIndex++) {
+            const col = Array.isArray(cols[colIndex]) ? cols[colIndex] : [];
+            const controls = [];
+            const swaps = [];
+
+            for (let r = 0; r < col.length; r++) {
+                const g = gateInfo(col[r]);
+                if (!g) continue;
+                if (g.id === '•') controls.push({row:r, anti:false});
+                else if (g.id === '◦') controls.push({row:r, anti:true});
+                else if (g.id === 'Swap') swaps.push(r);
+            }
+
+            if (swaps.length === 2) {
+                out.push(`swap q[${swaps[0]}], q[${swaps[1]}];`);
+            } else if (swaps.length > 0) {
+                out.push(`// Unsupported SWAP column ${colIndex}: expected exactly two Swap gates.`);
+            }
+
+            for (let r = 0; r < col.length; r++) {
+                const g = gateInfo(col[r]);
+                if (!g || g.id === '•' || g.id === '◦' || g.id === 'Swap') continue;
+
+                const controlled = controlledLine(g.id, controls, r);
+                if (controlled !== undefined) {
+                    // controlledLine emits OpenQASM 2 syntax, so translate the
+                    // simple controlled operations to OpenQASM 3 here.
+                    out.push(controlled
+                        .replace(/^cx (q\[\d+\]),(q\[\d+\]);$/, 'cx $1, $2;')
+                        .replace(/^cy /, 'cy ')
+                        .replace(/^cz (q\[\d+\]),(q\[\d+\]);$/, 'cz $1, $2;')
+                        .replace(/^ccx (q\[\d+\]),q\[(\d+)\],(q\[\d+\]);$/, 'ccx $1, q[$2], $3;')
+                    );
+                    continue;
+                }
+
+                let single;
+                switch (g.id) {
+                    case 'X': single = `x q[${r}];`; break;
+                    case 'Y': single = `y q[${r}];`; break;
+                    case 'Z': single = `z q[${r}];`; break;
+                    case 'H': single = `h q[${r}];`; break;
+                    case 'X^½': single = `rx(pi/2) q[${r}];`; break;
+                    case 'X^-½': single = `rx(-pi/2) q[${r}];`; break;
+                    case 'X^¼': single = `rx(pi/4) q[${r}];`; break;
+                    case 'X^-¼': single = `rx(-pi/4) q[${r}];`; break;
+                    case 'X^⅛': single = `rx(pi/8) q[${r}];`; break;
+                    case 'X^-⅛': single = `rx(-pi/8) q[${r}];`; break;
+                    case 'Y^½': single = `ry(pi/2) q[${r}];`; break;
+                    case 'Y^-½': single = `ry(-pi/2) q[${r}];`; break;
+                    case 'Y^¼': single = `ry(pi/4) q[${r}];`; break;
+                    case 'Y^-¼': single = `ry(-pi/4) q[${r}];`; break;
+                    case 'Y^⅛': single = `ry(pi/8) q[${r}];`; break;
+                    case 'Y^-⅛': single = `ry(-pi/8) q[${r}];`; break;
+                    case 'Z^½': single = `rz(pi/2) q[${r}];`; break;
+                    case 'Z^-½': single = `rz(-pi/2) q[${r}];`; break;
+                    case 'Z^¼': single = `rz(pi/4) q[${r}];`; break;
+                    case 'Z^-¼': single = `rz(-pi/4) q[${r}];`; break;
+                    case 'Z^⅛': single = `rz(pi/8) q[${r}];`; break;
+                    case 'Z^-⅛': single = `rz(-pi/8) q[${r}];`; break;
+                    case 'S': single = `s q[${r}];`; break;
+                    case 'S†': single = `sdg q[${r}];`; break;
+                    case 'T': single = `t q[${r}];`; break;
+                    case 'T†': single = `tdg q[${r}];`; break;
+                    case 'Measure': single = `c[${r}] = measure q[${r}];`; break;
+                    case '|0>': single = `reset q[${r}];`; break;
+                    case '|1>': single = `x q[${r}];`; break;
+                    case 'Rx':
+                    case 'Ry':
+                    case 'Rz': {
+                        const a = qasmAngle(g.arg);
+                        single = a === undefined ? undefined : `${g.id.toLowerCase()}(${a}) q[${r}];`;
+                        break;
+                    }
+                    case 'Rxft':
+                        single = `rx(pi * t * t) q[${r}];`;
+                        break;
+                    case 'Ryft':
+                        single = `ry(pi * t * t) q[${r}];`;
+                        break;
+                    case 'Rzft':
+                        single = `rz(pi * t * t) q[${r}];`;
+                        break;
+                    default:
+                        single = undefined;
+                }
+
+                if (single !== undefined && controls.length === 0) {
+                    out.push(single);
+                } else if (single !== undefined && controls.length > 0) {
+                    out.push(`// Unsupported controlled gate: ${g.id} on q[${r}]`);
+                } else {
+                    const argText = g.arg === undefined ? '' : `(${String(g.arg)})`;
+                    out.push(`// Unsupported gate: ${g.id}${argText} on q[${r}]`);
+                }
+            }
+        }
+
+        if (hasFormulaicGate) {
+            out.splice(4, 0, '// t is an external parameter. Quirk\'s stored formula/value is intentionally ignored.');
+        }
+
+        return out.join('\n') + '\n';
+    }
+
+    function getCircuitJsonFromUrl() {
+        const hash = document.location.hash.substr(1);
+        if (!hash) return undefined;
+        for (const keyVal of hash.split('&')) {
+            const eq = keyVal.indexOf('=');
+            if (eq === -1) continue;
+            if (keyVal.substring(0, eq) === 'circuit') {
+                return JSON.parse(decodeURIComponent(keyVal.substring(eq + 1)));
+            }
+        }
+        return undefined;
+    }
+
+    qasmButton.addEventListener('click', () => {
+        try {
+            const circuit = getCircuitJsonFromUrl();
+            if (!circuit) {
+                qasmText.value = '// No circuit found in the current URL state.';
+            } else {
+                qasmText.value = circuitToQasm(circuit);
+            }
+        } catch (e) {
+            qasmText.value = '// Failed to generate OpenQASM:\\n// ' + String(e);
+        }
+        // Show first so the browser can measure the real window dimensions.
+        qasmWindow.style.transform = 'none';
+        qasmDiv.style.display = 'block';
+
+        // Position by the actual top-left coordinates needed to put the WINDOW
+        // CENTER exactly at the viewport center. This avoids assumptions about
+        // transformed ancestors or Quirk's page layout.
+        const centerLeft = Math.round((window.innerWidth - qasmWindow.offsetWidth) / 2);
+        const centerTop = Math.round((window.innerHeight - qasmWindow.offsetHeight) / 2);
+        qasmWindow.style.left = centerLeft + 'px';
+        qasmWindow.style.top = centerTop + 'px';
+
+        qasmText.focus();
+        qasmText.select();
+    });
+
+    qasmClose.addEventListener('click', () => {
+        qasmDiv.style.display = 'none';
+    });
+
+    qasmDiv.addEventListener('click', e => {
+        if (e.target === qasmDiv) qasmDiv.style.display = 'none';
+    });
+
+    // The QASM window is a small movable/resizable terminal.
+    const qasmWindow = document.getElementById('qasm-window');
+    const qasmTitlebar = document.getElementById('qasm-titlebar');
+    const qasmResizeHandle = document.getElementById('qasm-resize-handle');
+
+    let qasmDrag = null;
+    qasmTitlebar.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        const rect = qasmWindow.getBoundingClientRect();
+        qasmWindow.style.left = rect.left + 'px';
+        qasmWindow.style.top = rect.top + 'px';
+        qasmWindow.style.transform = 'none';
+        qasmDrag = {x:e.clientX, y:e.clientY, left:rect.left, top:rect.top};
+        e.preventDefault();
+    });
+
+    let qasmResize = null;
+    qasmResizeHandle.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        const rect = qasmWindow.getBoundingClientRect();
+        qasmResize = {x:e.clientX, y:e.clientY, width:rect.width, height:rect.height};
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (qasmDrag) {
+            qasmWindow.style.left = (qasmDrag.left + e.clientX - qasmDrag.x) + 'px';
+            qasmWindow.style.top = (qasmDrag.top + e.clientY - qasmDrag.y) + 'px';
+        }
+        if (qasmResize) {
+            qasmWindow.style.width = Math.max(300, qasmResize.width + e.clientX - qasmResize.x) + 'px';
+            qasmWindow.style.height = Math.max(180, qasmResize.height + e.clientY - qasmResize.y) + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        qasmDrag = null;
+        qasmResize = null;
+    });
+
+    qasmCopy.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(qasmText.value);
+            qasmCopy.textContent = 'Copied';
+            setTimeout(() => qasmCopy.textContent = 'Copy', 1000);
+        } catch (e) {
+            qasmText.focus();
+            qasmText.select();
+            document.execCommand('copy');
+        }
+    });
+})();
+
 
         </script>
     </body>
