@@ -36,7 +36,6 @@ import {initializedWglContext} from "./webgl/WglContext.js"
 import {watchDrags, isMiddleClicking, eventPosRelativeTo} from "./browser/MouseWatcher.js"
 import {ObservableValue, ObservableSource} from "./base/Obs.js"
 import {initExports, obsExportsIsShowing} from "./ui/exports.js"
-import {initForge, obsForgeIsShowing} from "./ui/forge.js"
 import {initMenu, obsMenuIsShowing, closeMenu} from "./ui/menu.js"
 import {initUndoRedo} from "./ui/undo.js"
 import {initClear} from "./ui/clear.js"
@@ -296,12 +295,10 @@ canvasDiv.addEventListener('mouseleave', () => {
 let obsIsAnyOverlayShowing = new ObservableSource();
 initUrlCircuitSync(revision);
 initExports(revision, mostRecentStats, obsIsAnyOverlayShowing.observable());
-initForge(revision, obsIsAnyOverlayShowing.observable());
 initUndoRedo(revision, obsIsAnyOverlayShowing.observable());
 initClear(revision, obsIsAnyOverlayShowing.observable());
 initMenu(revision, obsIsAnyOverlayShowing.observable());
 initTitleSync(revision);
-obsForgeIsShowing.
     zipLatest(obsExportsIsShowing, (e1, e2) => e1 || e2).
     zipLatest(obsMenuIsShowing, (e1, e2) => e1 || e2).
     whenDifferent().

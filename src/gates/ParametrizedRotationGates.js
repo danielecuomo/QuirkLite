@@ -291,54 +291,6 @@ function angleClicker(quantityName) {
     };
 }
 
-ParametrizedRotationGates.FormulaicRotationX = new GateBuilder().
-    setSerializedIdAndSymbol("X^ft").
-    setTitle("Formula X Rotation").
-    setBlurb("Rotates around X by an amount determined by a formula.").
-    setDrawer(configurableRotationDrawer('X^f(t)', 0, Math.PI)).
-    setWidth(2).
-    setExtraDisableReasonFinder(badFormulaDetector).
-    setOnClickGateFunc(angleClicker("X gate's exponent")).
-    setEffectToTimeVaryingMatrix((t, formula) => {
-        let exponent = parseTimeFormula(formula, t*2-1, true) || 0;
-        return Matrix.fromPauliRotation(exponent/2, 0, 0);
-    }).
-    setWithParamPropertyRecomputeFunc(updateUsingFormula).
-    promiseEffectIsUnitary().
-    gate.withParam('sin(pi t)');
-
-ParametrizedRotationGates.FormulaicRotationY = new GateBuilder().
-    setSerializedIdAndSymbol("Y^ft").
-    setTitle("Formula Y Rotation").
-    setBlurb("Rotates around Y by an amount determined by a formula.").
-    setDrawer(configurableRotationDrawer('Y^f(t)', 1, Math.PI)).
-    setWidth(2).
-    setExtraDisableReasonFinder(badFormulaDetector).
-    setOnClickGateFunc(angleClicker("Y gate's exponent")).
-    setEffectToTimeVaryingMatrix((t, formula) => {
-        let exponent = parseTimeFormula(formula, t*2-1, true) || 0;
-        return Matrix.fromPauliRotation(0, exponent/2, 0);
-    }).
-    setWithParamPropertyRecomputeFunc(updateUsingFormula).
-    promiseEffectIsUnitary().
-    gate.withParam('sin(pi t)');
-
-ParametrizedRotationGates.FormulaicRotationZ = new GateBuilder().
-    setSerializedIdAndSymbol("Z^ft").
-    setTitle("Formula Z Rotation").
-    setBlurb("Rotates around Z by an amount determined by a formula.").
-    setDrawer(configurableRotationDrawer('Z^f(t)', 2, Math.PI)).
-    setWidth(2).
-    setExtraDisableReasonFinder(badFormulaDetector).
-    setOnClickGateFunc(angleClicker("Z gate's exponent")).
-    setEffectToTimeVaryingMatrix((t, formula) => {
-        let exponent = parseTimeFormula(formula, t*2-1, true) || 0;
-        return Matrix.fromPauliRotation(0, 0, exponent/2);
-    }).
-    setWithParamPropertyRecomputeFunc(updateUsingFormula).
-    promiseEffectOnlyPhases().
-    gate.withParam('sin(pi t)');
-
 ParametrizedRotationGates.FormulaicRotationRx = new GateBuilder().
     setSerializedIdAndSymbol("Rxft").
     setTitle("Formula Rx Gate").
@@ -385,9 +337,6 @@ ParametrizedRotationGates.all =[
     ParametrizedRotationGates.YToMinusA,
     ParametrizedRotationGates.ZToA,
     ParametrizedRotationGates.ZToMinusA,
-    ParametrizedRotationGates.FormulaicRotationX,
-    ParametrizedRotationGates.FormulaicRotationY,
-    ParametrizedRotationGates.FormulaicRotationZ,
     ParametrizedRotationGates.FormulaicRotationRx,
     ParametrizedRotationGates.FormulaicRotationRy,
     ParametrizedRotationGates.FormulaicRotationRz,

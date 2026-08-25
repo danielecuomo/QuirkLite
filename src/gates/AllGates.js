@@ -235,9 +235,9 @@ Gates.TopToolboxGroups = [
     {
         hint: "Formulaic",
         gates: [
-            ParametrizedRotationGates.FormulaicRotationZ, ParametrizedRotationGates.FormulaicRotationRz,
-            ParametrizedRotationGates.FormulaicRotationY, ParametrizedRotationGates.FormulaicRotationRy,
-            ParametrizedRotationGates.FormulaicRotationX, ParametrizedRotationGates.FormulaicRotationRx,
+            ParametrizedRotationGates.FormulaicRotationRz,
+            ParametrizedRotationGates.FormulaicRotationRy,
+            ParametrizedRotationGates.FormulaicRotationRx,
         ]
     },
 ];

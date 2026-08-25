@@ -1,12 +1,12 @@
 {
   "name": "quirk-quantum-circuit-simulator",
-  "title": "Quirk",
+  "title": "QuirkLite",
   "description": "A drag-and-drop toy for exploring and understanding small quantum circuits.",
   "license": "Apache-2.0",
   "version": "2.3.2",
-  "homepage": "https://github.com/Strilanc/Quirk",
+  "homepage": "https://github.com/danielecuomo/QuirkLite",
   "bugs": {
-    "url": "https://github.com/Strilanc/Quirk/issues"
+    "url": "https://github.com/danielecuomo/QuirkLite/issues"
   },
   "devDependencies": {
     "grunt": "~1.3.0",
@@ -32,6 +32,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Strilanc/Quirk.git"
+    "url": "https://github.com/danielecuomo/QuirkLite.git"
   }
 }

@@ -134,7 +134,7 @@ The application includes example circuits covering several quantum-computing con
 - Shor period finding
 - Bell inequality testing (CHSH)
 - Quantum teleportation
-- Supersdense coding
+- Superdense coding
 - Delayed-choice eraser
 - Symmetry breaking
 - Quantum Fourier transform
