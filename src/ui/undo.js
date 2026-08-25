@@ -19,10 +19,12 @@
  * @param {!Observable.<boolean>} obsIsAnyOverlayShowing
  */
 function initUndoRedo(revision, obsIsAnyOverlayShowing) {
+    // Some legacy overlays (Forge/Export) are no longer present in QuirkLite.
+    // Ignore missing elements instead of dereferencing null on every keydown.
     const overlay_divs = [
         document.getElementById('gate-forge-div'),
         document.getElementById('export-div')
-    ];
+    ].filter(div => div !== null);
 
     const undoButton = /** @type {!HTMLButtonElement} */ document.getElementById('undo-button');
     const redoButton = /** @type {!HTMLButtonElement} */ document.getElementById('redo-button');
@@ -35,18 +37,26 @@ function initUndoRedo(revision, obsIsAnyOverlayShowing) {
     redoButton.addEventListener('click', () => revision.redo());
 
     document.addEventListener("keydown", e => {
-        // Don't capture keystrokes while menus are showing.
+        const Y_KEY = 89;
+        const Z_KEY = 90;
+        const commandOrControl = e.ctrlKey || e.metaKey;
+
+        // Ignore every key that is not one of the shortcuts owned by this
+        // handler. This is important because QuirkLite no longer has some
+        // of Quirk's old keyboard-bound features.
+        const isUndo = e.keyCode === Z_KEY && commandOrControl && !e.shiftKey && !e.altKey;
+        const isRedo1 = e.keyCode === Z_KEY && commandOrControl && e.shiftKey && !e.altKey;
+        const isRedo2 = e.keyCode === Y_KEY && commandOrControl && !e.shiftKey && !e.altKey;
+        if (!isUndo && !isRedo1 && !isRedo2) {
+            return;
+        }
+
+        // Don't capture shortcuts while menus are showing.
         for (let div of overlay_divs) {
             if (div.style.display !== 'NONE' && div.style.display !== 'none') {
                 return;
             }
         }
-
-        const Y_KEY = 89;
-        const Z_KEY = 90;
-        let isUndo = e.keyCode === Z_KEY && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
-        let isRedo1 = e.keyCode === Z_KEY && e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey;
-        let isRedo2 = e.keyCode === Y_KEY && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
         if (isUndo) {
             revision.undo();
             e.preventDefault();
