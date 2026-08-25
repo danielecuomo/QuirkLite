@@ -19,11 +19,6 @@ QuirkLite lets you build and inspect quantum circuits directly in a web browser.
 - **Built-in examples** — includes examples such as Grover search, Shor period finding, Bell/CHSH testing, quantum teleportation, and other demonstrations.
 - **Standalone HTML output** — the build process produces a self-contained `out/quirk.html` file that can be opened directly in a browser.
 
-## QuirkLite changes
-
-QuirkLite is a customized version of Quirk with a simplified interface.
-
-In particular, the **Make Gate** control and the **Version 2.3** label have been removed from the main interface. The application is intended to provide the core circuit-building and simulation experience without exposing the custom-gate creation control in the toolbar.
 
 ## Getting started
 
