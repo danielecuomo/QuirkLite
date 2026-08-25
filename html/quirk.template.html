@@ -184,6 +184,7 @@ document.DEFAULT_CIRCUIT = undefined;
             case 'Z^⅛': return `rz(pi/8) ${q};`;
             case 'Z^-⅛': return `rz(-pi/8) ${q};`;
             case 'Measure': return `measure ${q} -> c[${row}];`;
+            case 'MeasureX': return `h ${q};\nc[${row}] = measure ${q};`;
             case '|0>': return `reset ${q};`;
             case '|1>': return `x ${q};`;
             case 'S': return `s ${q};`;
@@ -322,6 +323,7 @@ document.DEFAULT_CIRCUIT = undefined;
                     case 'T': single = `t q[${r}];`; break;
                     case 'T†': single = `tdg q[${r}];`; break;
                     case 'Measure': single = `c[${r}] = measure q[${r}];`; break;
+                    case 'MeasureX': single = `h q[${r}];\nc[${r}] = measure q[${r}];`; break;
                     case '|0>': single = `reset q[${r}];`; break;
                     case '|1>': single = `x q[${r}];`; break;
                     case 'Rx':
@@ -344,7 +346,7 @@ document.DEFAULT_CIRCUIT = undefined;
                         single = undefined;
                 }
 
-                if (single !== undefined && controls.length === 0) {
+                if (single !== undefined && single !== null && controls.length === 0) {
                     out.push(single);
                 } else if (single !== undefined && controls.length > 0) {
                     out.push(`// Unsupported controlled gate: ${g.id} on q[${r}]`);

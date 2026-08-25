@@ -419,7 +419,7 @@ class GateColumn {
         }
 
         // The measurement gate measures.
-        if (gate === Gates.Special.Measurement) {
+        if (gate === Gates.Special.Measurement || gate === Gates.Special.XMeasurement) {
             state.measureMask |= 1<<row;
             return;
         }

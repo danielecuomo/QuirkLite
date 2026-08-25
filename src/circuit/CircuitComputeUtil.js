@@ -43,7 +43,7 @@ function setGateBuilderEffectToCircuit(builder, circuitDefinition) {
                     if (r !== undefined) {
                         return r;
                     }
-                    if (def.gateInSlot(col, row) === Gates.Special.Measurement) {
+                    if (def.gateInSlot(col, row) === Gates.Special.Measurement || def.gateInSlot(col, row) === Gates.Special.XMeasurement) {
                         return "hidden\nmeasure\nbroken";
                     }
                 }

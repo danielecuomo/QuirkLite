@@ -17,11 +17,13 @@
 import {Config} from "../Config.js"
 import {GateBuilder} from "../circuit/Gate.js"
 import {GatePainting} from "../draw/GatePainting.js"
+import {GateShaders} from "../circuit/GateShaders.js"
+import {Matrix} from "../math/Matrix.js"
 
 /**
  * @param {!GateDrawParams} args
  */
-function drawMeasurementGate(args) {
+function drawMeasurementGate(args, axis) {
     let backColor = args.toolboxFillColor || '#F4D9D6';
     if (args.isHighlighted) {
         backColor = Config.HIGHLIGHTED_GATE_FILL_COLOR;
@@ -44,6 +46,16 @@ function drawMeasurementGate(args) {
     }).thenStroke('black');
     // Draw the indicator head.
     args.painter.trace(trace => trace.arrowHead(p, q, r*0.3, a, τ/4)).thenFill('black');
+    let marker = axis === 'X' ? 'x' : 'z';
+    args.painter.print(
+        marker,
+        args.rect.x + args.rect.w*0.16,
+        args.rect.y + args.rect.h*0.16,
+        'center', 'middle',
+        'black',
+        'bold 11px sans-serif',
+        args.rect.w*0.35,
+        args.rect.h*0.35);
 }
 
 let MeasurementGate = new GateBuilder().
@@ -51,7 +63,7 @@ let MeasurementGate = new GateBuilder().
     setTitle("Measurement Gate").
     setBlurb("Measures whether a qubit is ON or OFF, without conditioning on the result.").
     promiseHasNoNetEffectOnStateVector().  // Because in the simulation we defer measurement by preventing operations.
-    setDrawer(drawMeasurementGate).
+    setDrawer(args => drawMeasurementGate(args, "Z")).
     setExtraDisableReasonFinder(args => {
         if (args.isNested) {
             return "can't\nnest\nmeasure\n(sorry)";
@@ -64,4 +76,29 @@ let MeasurementGate = new GateBuilder().
     }).
     gate;
 
-export {MeasurementGate}
+let XMeasurementGate = new GateBuilder().
+    setSerializedIdAndSymbol("MeasureX").
+    setSymbol("Measure^x").
+    setTitle("X-Basis Measurement Gate").
+    setBlurb("Applies a Hadamard, then measures the qubit in the Z basis (equivalent to measuring in the X basis).").
+    setActualEffectToUpdateFunc(ctx => GateShaders.applyMatrixOperation(ctx, Matrix.HADAMARD)).
+    setKnownEffectToMatrix(Matrix.HADAMARD).
+    setDrawer(args => drawMeasurementGate(args, "X")).
+    setExtraDisableReasonFinder(args => {
+        if (args.isNested) {
+            return "can't
+nest
+measure
+(sorry)";
+        }
+        let isMeasured = (args.measuredMask & (1<<args.outerRow)) !== 0;
+        if (args.innerColumn.hasControl() && !isMeasured) {
+            return "can't
+control
+(sorry)";
+        }
+        return undefined;
+    }).
+    gate;
+
+export {MeasurementGate, XMeasurementGate}
