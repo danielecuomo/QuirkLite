@@ -116,10 +116,39 @@ function amplitudeDisplayStatTextures(stateKet, controls, controlsTexture, range
  * @param {!CircuitDefinition} circuitDefinition
  * @returns {!{quality: !number, ket: !Matrix, phaseLockIndex: !int,incoherentKet: !Matrix}}
  */
-function processOutputs(span, pixelGroups, circuitDefinition) {
+function processOutputs(span, pixelGroups, circuitDefinition, col, row) {
     let [ketPixels, qualityPixels, rawIncoherentKetPixels] = pixelGroups;
     let denormalizedQuality = qualityPixels[0];
-    let n = 1 << span;
+
+    // A Wire Cut marks the qubit as a constant |0> after the cut. Amps should
+    // not allocate a matrix dimension for that qubit. Keep the physical gate
+    // rectangle unchanged, but compact the amplitude data before interpreting
+    // it. This makes the matrix dimensions depend only on surviving wires.
+    // customStatPostProcesser receives (pixels, circuit, col, row).
+    // The cut mask is therefore evaluated at the Amps gate's actual column.
+    // This is the critical distinction: a cut on a physical row must remove
+    // that row's |1> half from the Amps basis, rather than merely drawing
+    // the original 2^span entries with some zeros in them.
+    let cutMask = circuitDefinition.colIsWireCutMask(col);
+    let localCutMask = (cutMask >>> row) & ((1 << span) - 1);
+    if (localCutMask !== 0) {
+        let compactKet = [];
+        let compactIncoherent = [];
+        let physicalCount = 1 << span;
+        for (let i = 0; i < physicalCount; i++) {
+            // The cut qubit is |0>, so states with any cut bit set are removed.
+            if ((i & localCutMask) !== 0) {
+                continue;
+            }
+            compactKet.push(ketPixels[i*2], ketPixels[i*2+1]);
+            compactIncoherent.push(rawIncoherentKetPixels[i]);
+        }
+        ketPixels = new Float32Array(compactKet);
+        rawIncoherentKetPixels = new Float32Array(compactIncoherent);
+    }
+
+    let n = ketPixels.length >> 1;
+    let displaySpan = Math.round(Math.log2(n));
     let w = n === 2 ? 2 : 1 << Math.floor(Math.round(Math.log2(n))/2);
     let h = n/w;
 
@@ -146,7 +175,7 @@ function processOutputs(span, pixelGroups, circuitDefinition) {
     }
     let quality = denormalizedQuality / unity / incoherentUnity;
 
-    let phaseIndex = span === circuitDefinition.numWires ? undefined : _processOutputs_pickPhaseLockIndex(ketPixels);
+    let phaseIndex = displaySpan === circuitDefinition.numWires ? undefined : _processOutputs_pickPhaseLockIndex(ketPixels);
     let phase = phaseIndex === undefined ? 0 : Math.atan2(ketPixels[phaseIndex*2+1], ketPixels[phaseIndex*2]);
     let c = Math.cos(phase);
     let s = -Math.sin(phase);
@@ -262,12 +291,12 @@ const AMPLITUDE_DRAWER_FROM_CUSTOM_STATS = GatePainting.makeDisplayDrawer(args =
     let forceSign = v => (v >= 0 ? '+' : '') + v.toFixed(2);
     if (isIncoherent) {
         MathPainter.paintMatrixTooltip(args.painter, matrix, drawRect, args.focusPoints,
-            (c, r) => `Chance of |${Util.bin(r*matrix.width() + c, args.gate.height)}⟩ (decimal ${r*matrix.width() + c}) [amplitude not defined]`,
+            (c, r) => `Chance of |${Util.bin(r*matrix.width() + c, Math.round(Math.log2(matrix.width()*matrix.height())))}⟩ (decimal ${r*matrix.width() + c}) [amplitude not defined]`,
             (c, r, v) => `raw: ${(v.norm2()*100).toFixed(4)}%, log: ${(Math.log10(v.norm2())*10).toFixed(1)} dB`,
             (c, r, v) => '[entangled with other qubits]');
     } else {
         MathPainter.paintMatrixTooltip(args.painter, matrix, drawRect, args.focusPoints,
-            (c, r) => `Amplitude of |${Util.bin(r*matrix.width() + c, args.gate.height)}⟩ (decimal ${r*matrix.width() + c})`,
+            (c, r) => `Amplitude of |${Util.bin(r*matrix.width() + c, Math.round(Math.log2(matrix.width()*matrix.height())))}⟩ (decimal ${r*matrix.width() + c})`,
             (c, r, v) => 'val:' + v.toString(new Format(false, 0, 5, ", ")),
             (c, r, v) => `mag²:${(v.norm2()*100).toFixed(4)}%, phase:${forceSign(v.phase() * 180 / Math.PI)}°`);
         // Quirk internally chooses a phase reference so the displayed phases are
@@ -337,7 +366,7 @@ let AmplitudeDisplayFamily = Gate.buildFamily(1, 16, (span, builder) => builder.
             ctx.controlsTexture,
             ctx.row,
             span)).
-    setStatPixelDataPostProcessor((val, def) => processOutputs(span, val, def)).
+    setStatPixelDataPostProcessor((val, def, col, row) => processOutputs(span, val, def, col, row)).
     setProcessedStatsToJsonFunc(customStatsToJsonData).
     setDrawer(AMPLITUDE_DRAWER_FROM_CUSTOM_STATS));
 

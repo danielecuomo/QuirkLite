@@ -665,6 +665,24 @@ class CircuitDefinition {
     }
 
     /**
+     * Returns the physical rows which still represent live qubits at a column.
+     * The physical row is intentionally preserved for drawing; this list is
+     * only used when deciding which surviving qubits are logically adjacent.
+     * @param {!int} col
+     * @returns {!Array.<!int>}
+     */
+    activeWireRowsAtColumn(col) {
+        let mask = this.colIsWireCutMask(col);
+        let result = [];
+        for (let row = 0; row < this.numWires; row++) {
+            if ((mask & (1 << row)) === 0) {
+                result.push(row);
+            }
+        }
+        return result;
+    }
+
+    /**
      * @param {!int} col
      * @returns {!int}
      */
@@ -781,11 +799,28 @@ class CircuitDefinition {
      * @returns {undefined|!{col: !int, row: !int, gate: !Gate}}
      */
     findGateCoveringSlot(col, row) {
-        let key = col+":"+row;
-        if (!this._gateSlotCoverMap.has(key)) {
+        if (col < 0 || row < 0 || col >= this.columns.length || row >= this.numWires) {
             return undefined;
         }
-        return this._gateSlotCoverMap.get(key);
+
+        // Gates keep their top-left logical slot, while their visual footprint
+        // may skip rows which were removed by Wire Cut.
+        let activeRows = this.activeWireRowsAtColumn(col);
+        let activeIndex = activeRows.indexOf(row);
+        if (activeIndex < 0) {
+            return undefined;
+        }
+        for (let startIndex = 0; startIndex <= activeIndex; startIndex++) {
+            let startRow = activeRows[startIndex];
+            let gate = this.columns[col].gates[startRow];
+            if (gate === undefined || this.gateAtLocIsDisabledReason(col, startRow) !== undefined) {
+                continue;
+            }
+            if (activeIndex < startIndex + gate.height) {
+                return {col, row: startRow, gate};
+            }
+        }
+        return undefined;
     }
 
     /**
@@ -1065,8 +1100,13 @@ class CircuitDefinition {
      * @returns {!boolean}
      */
     isSlotRectCoveredByGateInSameColumn(col, row, height) {
-        for (let j = 0; j < height; j++) {
-            let f = this.findGateCoveringSlot(col, row+j);
+        let activeRows = this.activeWireRowsAtColumn(col);
+        let activeIndex = activeRows.indexOf(row);
+        if (activeIndex < 0) {
+            return false;
+        }
+        for (let j = 0; j < height && activeIndex + j < activeRows.length; j++) {
+            let f = this.findGateCoveringSlot(col, activeRows[activeIndex + j]);
             if (f !== undefined && f.col === col) {
                 return true;
             }

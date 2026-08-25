@@ -503,6 +503,16 @@ suite.test("colIsWireCutMask", () => {
     assertThat(Seq.range(c.columns.length + 2).map(i => c.colIsWireCutMask(i-1)).toArray()).isEqualTo([0, 0, 1, 1, 5, 5, 5, 5]);
 });
 
+suite.test("activeWireRowsAtColumn keeps visual rows stable", () => {
+    let c = circuit(`-WireCut--
+                     -------
+                     --------`, ['WireCut', Gates.WireCutGate]);
+    assertThat(c.activeWireRowsAtColumn(0)).isEqualTo([0, 1, 2]);
+    assertThat(c.activeWireRowsAtColumn(1)).isEqualTo([1, 2]);
+    // The surviving wires are logically adjacent, but their physical rows do not move.
+    assertThat(c.activeWireRowsAtColumn(2)).isEqualTo([1, 2]);
+});
+
 suite.test("locIsMeasured", () => {
     let c = circuit(`-M---
                      ---M-

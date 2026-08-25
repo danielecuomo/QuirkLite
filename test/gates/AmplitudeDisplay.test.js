@@ -243,3 +243,27 @@ suite.testUsingWebGL("AmplitudesDisplayIncoherent_conditioned", () => {
     ]);
     assertThat(out.displays[0].data.coherence_measure).isLessThan(0.85);
 });
+
+
+suite.testUsingWebGL("AmplitudesDisplay_WireCutReducesZeroDimension", () => {
+    let stats = CircuitStats.fromCircuitAtTime(
+        Serializer.fromJson(CircuitDefinition, {
+            cols:[
+                [undefined, "WireCut", undefined],
+                ["Amps3", undefined, undefined]
+            ],
+            init:[0, 0, 0]
+        }),
+        0);
+    let out = stats.toReadableJson();
+    // The middle wire is a constant |0> after Wire Cut. Amps3 must therefore
+    // expose the two surviving wires as a 2-qubit (4-amplitude) display.
+    assertThat(out.displays[0].data.ket.length).isEqualTo(4);
+    assertThat(out.displays[0].data.incoherentKet.length).isEqualTo(4);
+    assertThat(out.displays[0].data.ket).isApproximatelyEqualTo([
+        {r: 1, i: 0},
+        {r: 0, i: 0},
+        {r: 0, i: 0},
+        {r: 0, i: 0},
+    ]);
+});

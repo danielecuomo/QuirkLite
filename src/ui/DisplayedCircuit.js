@@ -34,7 +34,7 @@ import {seq, Seq} from "../base/Seq.js"
 import {paintBlochSphereDisplay} from "../gates/BlochSphereDisplay.js"
 
 /** @type {!number} */
-let CIRCUIT_OP_HORIZONTAL_SPACING = 10;
+let CIRCUIT_OP_HORIZONTAL_SPACING = 20;
 /** @type {!number} */
 let CIRCUIT_OP_LEFT_SPACING = 35;
 
@@ -294,12 +294,22 @@ class DisplayedCircuit {
      */
     gateRect(wireIndex, operationIndex, width=1, height=1) {
         let op = this.opRect(operationIndex);
-        let wire = this.wireRect(wireIndex);
+        let activeRows = this.circuitDefinition.activeWireRowsAtColumn(operationIndex);
+        let activeIndex = activeRows.indexOf(wireIndex);
+        let lastWireIndex = wireIndex;
+        if (activeIndex >= 0) {
+            let lastIndex = activeIndex + height - 1;
+            if (lastIndex < activeRows.length) {
+                lastWireIndex = activeRows[lastIndex];
+            }
+        }
+        let topWire = this.wireRect(wireIndex);
+        let bottomWire = this.wireRect(lastWireIndex);
         let r = new Rect(
             op.center().x - Config.GATE_RADIUS,
-            wire.center().y - Config.GATE_RADIUS,
+            topWire.center().y - Config.GATE_RADIUS,
             2*Config.GATE_RADIUS + (width-1)*Config.WIRE_SPACING,
-            2*Config.GATE_RADIUS + (height-1)*Config.WIRE_SPACING);
+            bottomWire.center().y - topWire.center().y + 2*Config.GATE_RADIUS);
 
         return new Rect(Math.round(r.x - 0.5) + 0.5, Math.round(r.y - 0.5) + 0.5, Math.round(r.w), Math.round(r.h));
     }
