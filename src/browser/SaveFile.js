@@ -30,7 +30,7 @@ function saveFile(name, content) {
     //noinspection JSUnresolvedVariable,JSUnresolvedFunction
     anchor.href = window.URL !== undefined ?
         window.URL.createObjectURL(new Blob([content], {type: 'text/html;charset=UTF-8'})) :
-        'data:application/octet-stream,' + encodeURI(moddedHtml);
+        'data:text/html;charset=UTF-8,' + encodeURIComponent(content);
     anchor.download = name;
     try {
         //noinspection XHTMLIncompatabilitiesJS
