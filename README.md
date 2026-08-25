@@ -1,6 +1,6 @@
 # QuirkLite
 
-![Demo](assets/demo.gif)
+![Demo](assets/demo1.gif)
 
 QuirkLite is a lightweight, browser-based quantum circuit simulator derived from the Quirk project. It is designed for experimenting with small quantum circuits through an interactive drag-and-drop interface, without requiring a separate desktop application.
 
