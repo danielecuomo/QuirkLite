@@ -20,6 +20,8 @@ function initMenu(revision, obsIsAnyOverlayShowing) {
     });
     const teleportAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-teleport');
     teleportAnchor.href = '#circuit={%22cols%22:[[1,%22•%22,%22X%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[%22•%22,%22X%22],[%22MeasureX%22,%22Measure%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22],[1,1,%22Bloch%22]],%22init%22:[0,%22+%22]}';
+    const nonLocalityAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-non-locality');
+    nonLocalityAnchor.href = '#circuit={%22cols%22:[[1,%22H%22],[1,%22•%22,%22X%22],[%22Chance%22,%22Chance%22,%22Chance%22,%22Chance%22],[%22%3C%3C2%22,1,%22%3C%3C2%22],[%22Chance%22,%22Chance%22,%22Chance%22,%22Chance%22]]}';
 }
 
 export {initMenu, obsMenuIsShowing, closeMenu}

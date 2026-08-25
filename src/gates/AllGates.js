@@ -227,6 +227,12 @@ Gates.TopToolboxGroups = [
         ]
     },
     {
+        hint: "Permutations",
+        gates: [
+            CycleBitsGates.CycleBitsFamily.ofSize(2),
+        ]
+    },
+    {
         hint: "Eighth Turns",
         gates: [
             VariousZGates.Z4, VariousZGates.Z4i,
