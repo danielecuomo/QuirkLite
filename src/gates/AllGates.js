@@ -233,8 +233,9 @@ Gates.TopToolboxGroups = [
     {
         hint: "Gadgets",
         gates: [
-            WireCutGate,
+            WireCutGate, undefined,
             CycleBitsGates.CycleBitsFamily.ofSize(2),
+            CycleBitsGates.ReverseCycleBitsFamily.ofSize(2),
         ]
     },
     {

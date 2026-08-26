@@ -93,13 +93,19 @@ suite.test("allGatesAreGates", () => {
     }
 });
 
-suite.test("leftRotateIsInTopToolboxWithTwoQubitDefault", () => {
-    let leftRotateGroup = Gates.TopToolboxGroups.find(g => g.hint === "Permutations");
-    assertThat(leftRotateGroup !== undefined).isEqualTo(true);
-    let leftRotate = leftRotateGroup.gates.find(g => g !== undefined && g.title === "Left Rotate");
+suite.test("rotateGatesAreInGadgetsWithTwoQubitDefault", () => {
+    let gadgetsGroup = Gates.TopToolboxGroups.find(g => g.hint === "Gadgets");
+    assertThat(gadgetsGroup !== undefined).isEqualTo(true);
+
+    let leftRotate = gadgetsGroup.gates.find(g => g !== undefined && g.title === "Left Rotate");
     assertThat(leftRotate).isEqualTo(Gates.CycleBitsGates.CycleBitsFamily.ofSize(2));
     assertThat(leftRotate.height).isEqualTo(2);
     assertThat(leftRotate.serializedId).isEqualTo("<<2");
+
+    let rightRotate = gadgetsGroup.gates.find(g => g !== undefined && g.title === "Right Rotate");
+    assertThat(rightRotate).isEqualTo(Gates.CycleBitsGates.ReverseCycleBitsFamily.ofSize(2));
+    assertThat(rightRotate.height).isEqualTo(2);
+    assertThat(rightRotate.serializedId).isEqualTo(">>2");
 });
 
 suite.testUsingWebGL("customShaderMatchesKnownMatrix", () => {
