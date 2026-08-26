@@ -110,6 +110,136 @@ function amplitudeDisplayStatTextures(stateKet, controls, controlsTexture, range
     return [ket, denormalizedQuality, incoherentKet];
 }
 
+
+/**
+ * Traces the selected qubits out of the state vector represented by an Amps
+ * display. The state is reshaped into a matrix whose rows are surviving basis
+ * states and whose columns are assignments of the traced qubits. The reduced
+ * state is pure exactly when this matrix has rank one; checking rank one this
+ * way is linear in the number of amplitudes instead of constructing a dense
+ * density matrix.
+ *
+ * @param {!Float32Array} ketPixels
+ * @param {!int} span
+ * @param {!int} cutMask
+ * @returns {!{ketPixels: !Float32Array, incoherentKetPixels: !Float32Array, isMixed: !boolean}}
+ * @private
+ */
+function _partialTraceCutQubits(ketPixels, span, cutMask) {
+    let tracedCount = Util.numberOfSetBits(cutMask);
+    let keptSpan = span - tracedCount;
+    let keptCount = 1 << keptSpan;
+    let traceCount = 1 << tracedCount;
+
+    let keptPositions = [];
+    for (let bit = 0; bit < span; bit++) {
+        if ((cutMask & (1 << bit)) === 0) {
+            keptPositions.push(bit);
+        }
+    }
+
+    // Map a compact (kept, traced) pair back to the physical basis index.
+    let physicalIndex = (kept, traced) => {
+        let result = 0;
+        let keptBit = 0;
+        let traceBit = 0;
+        for (let bit = 0; bit < span; bit++) {
+            if ((cutMask & (1 << bit)) !== 0) {
+                result |= ((traced >>> traceBit) & 1) << bit;
+                traceBit++;
+            } else {
+                result |= ((kept >>> keptBit) & 1) << bit;
+                keptBit++;
+            }
+        }
+        return result;
+    };
+
+    let total = 0;
+    let probabilities = new Float64Array(keptCount);
+    let pivotKept = 0;
+    let pivotTrace = 0;
+    let pivotMag2 = -1;
+    for (let kept = 0; kept < keptCount; kept++) {
+        for (let traced = 0; traced < traceCount; traced++) {
+            let i = physicalIndex(kept, traced) * 2;
+            let mag2 = ketPixels[i] * ketPixels[i] + ketPixels[i + 1] * ketPixels[i + 1];
+            probabilities[kept] += mag2;
+            total += mag2;
+            if (mag2 > pivotMag2) {
+                pivotMag2 = mag2;
+                pivotKept = kept;
+                pivotTrace = traced;
+            }
+        }
+    }
+
+    if (!Number.isFinite(total) || total < 1e-12 || pivotMag2 < 1e-12) {
+        return {
+            ketPixels: new Float32Array(keptCount * 2).fill(NaN),
+            incoherentKetPixels: new Float32Array(keptCount).fill(NaN),
+            isMixed: true,
+        };
+    }
+
+    // For a pure reduced state, every traced-qubit column is proportional to
+    // the pivot column. Measure the normalized reconstruction error.
+    let pivotIndex = physicalIndex(pivotKept, pivotTrace) * 2;
+    let pr = ketPixels[pivotIndex];
+    let pi = ketPixels[pivotIndex + 1];
+    let pivotInvR = pr / pivotMag2;
+    let pivotInvI = -pi / pivotMag2;
+    let residual = 0;
+    for (let kept = 0; kept < keptCount; kept++) {
+        let baseIndex = physicalIndex(kept, pivotTrace) * 2;
+        let baseR = ketPixels[baseIndex];
+        let baseI = ketPixels[baseIndex + 1];
+        for (let traced = 0; traced < traceCount; traced++) {
+            let i = physicalIndex(kept, traced) * 2;
+            let cr = ketPixels[i];
+            let ci = ketPixels[i + 1];
+            let colIndex = physicalIndex(pivotKept, traced) * 2;
+            let qr = ketPixels[colIndex];
+            let qi = ketPixels[colIndex + 1];
+            let sr = baseR * pivotInvR - baseI * pivotInvI;
+            let si = baseR * pivotInvI + baseI * pivotInvR;
+            let rr = cr - (sr * qr - si * qi);
+            let ri = ci - (sr * qi + si * qr);
+            residual += rr * rr + ri * ri;
+        }
+    }
+    let isMixed = residual / total > 1e-7;
+
+    let incoherent = new Float32Array(keptCount);
+    for (let kept = 0; kept < keptCount; kept++) {
+        incoherent[kept] = Math.sqrt(Math.max(0, probabilities[kept] / total));
+    }
+
+    if (isMixed) {
+        return {
+            ketPixels: new Float32Array(keptCount * 2).fill(NaN),
+            incoherentKetPixels: incoherent,
+            isMixed: true,
+        };
+    }
+
+    // The pivot column is proportional to the surviving subsystem ket.
+    // Normalize it; the later phase-locking pass chooses the display reference.
+    let norm = Math.sqrt(probabilities[pivotKept] || 0);
+    let compactKet = new Float32Array(keptCount * 2);
+    for (let kept = 0; kept < keptCount; kept++) {
+        let i = physicalIndex(kept, pivotTrace) * 2;
+        compactKet[kept * 2] = ketPixels[i] / norm;
+        compactKet[kept * 2 + 1] = ketPixels[i + 1] / norm;
+    }
+
+    return {
+        ketPixels: compactKet,
+        incoherentKetPixels: incoherent,
+        isMixed: false,
+    };
+}
+
 /**
  * @param {!int} span
  * @param {!Array.<!Float32Array>} pixelGroups
@@ -120,31 +250,22 @@ function processOutputs(span, pixelGroups, circuitDefinition, col, row) {
     let [ketPixels, qualityPixels, rawIncoherentKetPixels] = pixelGroups;
     let denormalizedQuality = qualityPixels[0];
 
-    // A Wire Cut marks the qubit as a constant |0> after the cut. Amps should
-    // not allocate a matrix dimension for that qubit. Keep the physical gate
-    // rectangle unchanged, but compact the amplitude data before interpreting
-    // it. This makes the matrix dimensions depend only on surviving wires.
-    // customStatPostProcesser receives (pixels, circuit, col, row).
-    // The cut mask is therefore evaluated at the Amps gate's actual column.
-    // This is the critical distinction: a cut on a physical row must remove
-    // that row's |1> half from the Amps basis, rather than merely drawing
-    // the original 2^span entries with some zeros in them.
+    // Wire cuts remove qubits from the logical system. Do not assume that a cut
+    // qubit is in |0>: it may be entangled with the surviving wires. Instead,
+    // perform a partial trace over every cut qubit covered by this Amps display.
+    // The physical row indices remain unchanged; only the displayed Hilbert
+    // space is compacted.
     let cutMask = circuitDefinition.colIsWireCutMask(col);
     let localCutMask = (cutMask >>> row) & ((1 << span) - 1);
     if (localCutMask !== 0) {
-        let compactKet = [];
-        let compactIncoherent = [];
-        let physicalCount = 1 << span;
-        for (let i = 0; i < physicalCount; i++) {
-            // The cut qubit is |0>, so states with any cut bit set are removed.
-            if ((i & localCutMask) !== 0) {
-                continue;
-            }
-            compactKet.push(ketPixels[i*2], ketPixels[i*2+1]);
-            compactIncoherent.push(rawIncoherentKetPixels[i]);
+        let traced = _partialTraceCutQubits(ketPixels, span, localCutMask);
+        ketPixels = traced.ketPixels;
+        rawIncoherentKetPixels = traced.incoherentKetPixels;
+        if (traced.isMixed) {
+            // A reduced density matrix has no amplitude vector when it is mixed.
+            // Force the existing Amps renderer down its probability/incoherent path.
+            denormalizedQuality = 0;
         }
-        ketPixels = new Float32Array(compactKet);
-        rawIncoherentKetPixels = new Float32Array(compactIncoherent);
     }
 
     let n = ketPixels.length >> 1;

@@ -245,7 +245,32 @@ suite.testUsingWebGL("AmplitudesDisplayIncoherent_conditioned", () => {
 });
 
 
-suite.testUsingWebGL("AmplitudesDisplay_WireCutReducesZeroDimension", () => {
+suite.testUsingWebGL("AmplitudesDisplay_WireCutTracesOutQubit", () => {
+    let stats = CircuitStats.fromCircuitAtTime(
+        Serializer.fromJson(CircuitDefinition, {
+            cols:[
+                ["H", undefined],
+                ["•", "X"],
+                [undefined, "WireCut"],
+                ["Amps2", undefined]
+            ],
+            init:[0, 0]
+        }),
+        0);
+    let out = stats.toReadableJson();
+    // The cut qubit is one half of a Bell pair. A trace-out therefore leaves
+    // the surviving qubit in the maximally mixed state; there is no amplitude
+    // vector, only computational-basis probabilities.
+    assertThat(out.displays[0].data.ket.length).isEqualTo(2);
+    assertThat(out.displays[0].data.incoherentKet.length).isEqualTo(2);
+    assertThat(out.displays[0].data.incoherentKet).isApproximatelyEqualTo([
+        Math.sqrt(0.5),
+        Math.sqrt(0.5),
+    ]);
+    assertThat(out.displays[0].data.coherence_measure).isLessThan(0.01);
+});
+
+suite.testUsingWebGL("AmplitudesDisplay_WireCutKeepsPureState", () => {
     let stats = CircuitStats.fromCircuitAtTime(
         Serializer.fromJson(CircuitDefinition, {
             cols:[
@@ -256,8 +281,7 @@ suite.testUsingWebGL("AmplitudesDisplay_WireCutReducesZeroDimension", () => {
         }),
         0);
     let out = stats.toReadableJson();
-    // The middle wire is a constant |0> after Wire Cut. Amps3 must therefore
-    // expose the two surviving wires as a 2-qubit (4-amplitude) display.
+    // Tracing a separable |0> qubit leaves the remaining subsystem pure.
     assertThat(out.displays[0].data.ket.length).isEqualTo(4);
     assertThat(out.displays[0].data.incoherentKet.length).isEqualTo(4);
     assertThat(out.displays[0].data.ket).isApproximatelyEqualTo([
