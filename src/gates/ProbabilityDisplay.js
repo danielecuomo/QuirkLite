@@ -45,16 +45,51 @@ import {WglTextureTrader} from "../webgl/WglTextureTrader.js"
  * @param {!int} rangeLength How many wires the probability display covers.
  * @returns {!WglTexture} Texture storing the probabilities. Not normalized.
  */
-function probabilityStatTexture(ketTexture, controlTexture, rangeOffset, rangeLength) {
+function probabilityStatTexture(ketTexture, controlTexture, rangeOffset, rangeLength, wireCutMask=0) {
     let trader = new WglTextureTrader(ketTexture);
     trader.dontDeallocCurrentTexture();
     let n = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ketTexture);
 
     trader.shadeAndTrade(tex => amplitudesToProbabilities(tex, controlTexture), WglTexturePool.takeVecFloatTex(n));
-    trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -rangeOffset));
 
-    while (n > rangeLength) {
-        n -= 1;
+    // A CHANCE display refers to the logical qubits covered by its gate. If a
+    // WireCut occurred on one of those qubits, that qubit is no longer part of
+    // the subsystem whose probabilities are being displayed. Trace it out
+    // before selecting the range. Cuts outside the range are already
+    // marginalized by the range-folding below and must not change the number
+    // of displayed states.
+    let effectiveRangeLength = rangeLength;
+    let cutCount = 0;
+    for (let physicalBit = rangeOffset;
+         physicalBit < rangeOffset + rangeLength && physicalBit < 31;
+         physicalBit++) {
+        if ((wireCutMask & (1 << physicalBit)) === 0) {
+            continue;
+        }
+
+        // Move the bit to the least-significant position, sum adjacent
+        // entries to trace it out, then rotate the surviving bits back into
+        // their original physical order.
+        let currentBit = physicalBit - cutCount;
+        trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -currentBit));
+        trader.shadeHalveAndTrade(Shaders.sumFoldFloatAdjacents);
+        n--;
+        if (n > 0 && currentBit > 0) {
+            trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(
+                tex,
+                -(n - currentBit)));
+        }
+        cutCount++;
+        effectiveRangeLength--;
+    }
+
+    // Put the surviving range at the low end, preserving the original CHANCE
+    // ordering among the surviving physical wires.
+    let activeRangeOffset = rangeOffset;
+    trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -activeRangeOffset));
+
+    while (n > effectiveRangeLength) {
+        n--;
         trader.shadeHalveAndTrade(Shaders.sumFoldFloat);
     }
 
@@ -82,16 +117,30 @@ const AMPLITUDES_TO_PROBABILITIES_SHADER = makePseudoShaderWithInputsAndOutputAn
         return dot(amp, amp) * read_control(k);
     }`);
 
+function chanceDisplayedSpan(circuitDefinition, col, row, span) {
+    if (circuitDefinition === undefined || col === undefined || row === undefined) {
+        return span;
+    }
+    let wireCutMask = circuitDefinition.colIsWireCutMask(col);
+    let cutInRange = 0;
+    for (let r = row; r < row + span && r < 31; r++) {
+        if ((wireCutMask & (1 << r)) !== 0) {
+            cutInRange++;
+        }
+    }
+    return span - cutInRange;
+}
+
 /**
  * Post-processes the pixels that come out of makeProbabilitySpanPipeline into a vector of normalized probabilities.
  * @param {!Float32Array} pixels
  * @param {!int} span
  * @returns {!Matrix}
  */
-function probabilityPixelsToColumnVector(pixels, span) {
+function probabilityPixelsToColumnVector(pixels, span, circuitDefinition=undefined, col=undefined, row=undefined) {
+    span = chanceDisplayedSpan(circuitDefinition, col, row, span);
     let n = 1 << span;
     // CAUTION: pixels may be longer than n due to the length rounding up to a multiple of 4.
-
     let unity = 0;
     for (let i = 0; i < n; i++) {
         unity += pixels[i];
@@ -123,7 +172,7 @@ function probabilityDataToJson(data) {
  */
 function _paintMultiProbabilityDisplay_grid(args) {
     let {painter, rect: {x, y, w, h}} = args;
-    let n = 1 << args.gate.height;
+    let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
     painter.fillRect(args.rect, Config.DISPLAY_GATE_BACK_COLOR);
 
@@ -145,7 +194,7 @@ function _paintMultiProbabilityDisplay_grid(args) {
 
 function _paintMultiProbabilityDisplay_probabilityBars(args) {
     let {painter, rect: {x, y, w, h}, customStats: probabilities} = args;
-    let n = 1 << args.gate.height;
+    let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
     let e = Math.max(d, 1);
 
@@ -172,7 +221,7 @@ function _paintMultiProbabilityDisplay_probabilityBars(args) {
 
 function _paintMultiProbabilityDisplay_logarithmHints(args) {
     let {painter, rect: {x, y, w, h}, customStats: probabilities} = args;
-    let n = 1 << args.gate.height;
+    let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
     let e = Math.max(d, 1);
 
@@ -197,7 +246,7 @@ function _paintMultiProbabilityDisplay_logarithmHints(args) {
 
 function _paintMultiProbabilityDisplay_tooltips(args) {
     let {painter, rect: {x, y, w, h}, customStats: probabilities} = args;
-    let n = 1 << args.gate.height;
+    let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
 
     for (let pt of args.focusPoints) {
@@ -209,7 +258,7 @@ function _paintMultiProbabilityDisplay_tooltips(args) {
                 painter,
                 x + w,
                 y + k * d,
-                `Chance of |${Util.bin(k, args.gate.height)}⟩ (decimal ${k}) if measured`,
+                `Chance of |${Util.bin(k, probabilities.height() === 0 ? 0 : Math.round(Math.log2(probabilities.height())))}⟩ (decimal ${k}) if measured`,
                 'raw: ' + (p * 100).toFixed(4) + "%",
                 'log: ' + (Math.log10(p) * 10).toFixed(1) + " dB");
         }
@@ -279,8 +328,14 @@ function multiChanceGateMaker(span, builder) {
     return shared_chanceGateMaker(builder).
         setSerializedId("Chance" + span).
         setStatTexturesMaker(ctx =>
-            probabilityStatTexture(ctx.stateTrader.currentTexture, ctx.controlsTexture, ctx.row, span)).
-        setStatPixelDataPostProcessor(pixels => probabilityPixelsToColumnVector(pixels, span)).
+            probabilityStatTexture(
+                ctx.stateTrader.currentTexture,
+                ctx.controlsTexture,
+                ctx.row,
+                span,
+                ctx.circuitDefinition === undefined ? 0 : ctx.circuitDefinition.colIsWireCutMask(ctx.col))).
+        setStatPixelDataPostProcessor((pixels, circuit, col, row) =>
+            probabilityPixelsToColumnVector(pixels, span, circuit, col, row)).
         setProcessedStatsToJsonFunc(probabilityDataToJson).
         setDrawer(GatePainting.makeDisplayDrawer(paintMultiProbabilityDisplay));
 }

@@ -40,7 +40,9 @@ class CircuitEvalContext {
                 controlsTexture,
                 rawControls,
                 stateTrader,
-                customContextFromGates) {
+                customContextFromGates,
+                circuitDefinition=undefined,
+                col=undefined) {
         /** @type {!number} */
         this.time = time;
         /**
@@ -60,6 +62,10 @@ class CircuitEvalContext {
         this.stateTrader = stateTrader;
         /** @type {!Map.<!string, *>} */
         this.customContextFromGates = customContextFromGates;
+        /** @type {undefined|!CircuitDefinition} */
+        this.circuitDefinition = circuitDefinition;
+        /** @type {undefined|!int} */
+        this.col = col;
     }
 
     /**
@@ -84,7 +90,9 @@ class CircuitEvalContext {
             this.controlsTexture,
             this.rawControls,
             this.stateTrader,
-            this.customContextFromGates);
+            this.customContextFromGates,
+            this.circuitDefinition,
+            this.col);
     }
 
     /**

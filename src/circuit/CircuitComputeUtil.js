@@ -139,7 +139,9 @@ function _extractStateStatsNeededByCircuitColumn(
             ctx.stateTrader,
             Util.mergeMaps(
                 ctx.customContextFromGates,
-                circuitDefinition.colCustomContextFromGates(col, row)));
+                circuitDefinition.colCustomContextFromGates(col, row)),
+            circuitDefinition,
+            col);
         let stat = circuitDefinition.columns[col].gates[row].customStatTexturesMaker(statCtx);
         customGateStats.push({row, stat});
     }
