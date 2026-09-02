@@ -50,13 +50,16 @@ GatePainting.paletteColorForGate = gate => {
         return '#DCEFE2'; // mint
     }
     if (symbol === 'X' || symbol === 'Y' || symbol === 'Z' ||
+        symbol.indexOf('X_π') === 0 || symbol.indexOf('Y_π') === 0 || symbol.indexOf('Z_π') === 0 ||
         symbol === 'H' || symbol === 'Swap') {
         return '#E5DDF3'; // lavender
     }
-    if (symbol.indexOf('^½') >= 0 || symbol.indexOf('^-½') >= 0 || symbol === 'S' || symbol === 'S^-1') {
+    if (symbol.indexOf('^½') >= 0 || symbol.indexOf('^-½') >= 0 ||
+        symbol.indexOf('_π/2') >= 0 || symbol.indexOf('_-π/2') >= 0 || symbol === 'S' || symbol === 'S^-1') {
         return '#DCEAF5'; // powder blue
     }
-    if (symbol === 'T' || symbol === 'T^-1' || symbol.indexOf('^¼') >= 0 || symbol.indexOf('^-¼') >= 0) {
+    if (symbol === 'T' || symbol === 'T^-1' || symbol.indexOf('^¼') >= 0 || symbol.indexOf('^-¼') >= 0 ||
+        symbol.indexOf('_π/4') >= 0 || symbol.indexOf('_-π/4') >= 0) {
         return '#F3E1C9'; // peach
     }
     if (symbol === 'Reset') {
@@ -72,9 +75,12 @@ GatePainting.paletteColorForGate = gate => {
 
 GatePainting.paintBackground =
     (args, toolboxFillColor = Config.GATE_FILL_COLOR, normalFillColor = Config.GATE_FILL_COLOR) => {
+        // In the toolbox, the table/group color is authoritative so every gate in a
+        // table has the same background. Outside the toolbox, keep semantic colors.
         let paletteColor = GatePainting.paletteColorForGate(args.gate);
-        let backColor = paletteColor ||
-            (args.isInToolbox ? (args.toolboxFillColor || toolboxFillColor) : normalFillColor);
+        let backColor = args.isInToolbox
+            ? (args.toolboxFillColor || toolboxFillColor)
+            : (paletteColor || normalFillColor);
         if (args.isHighlighted) {
             backColor = Config.HIGHLIGHTED_GATE_FILL_COLOR;
         }
@@ -175,6 +181,25 @@ GatePainting.paintGateSymbol = (args, symbolOverride=undefined, allowExponent=tr
     }
     let {symbol, offsetY} = _paintSymbolHandleLines(args.painter, symbolOverride, rect);
     painter.ctx.font = GATE_SYMBOL_FONT;  // So that measure-text calls return the right stuff.
+
+    // Underscore denotes a subscript, e.g. X_π, X_π/2, X_π/4.
+    let subscriptIndex = symbol.indexOf('_');
+    if (subscriptIndex >= 1) {
+        let baseText = symbol.substr(0, subscriptIndex);
+        let subText = symbol.substr(subscriptIndex + 1);
+        let subFont = '12px sans-serif';
+        painter.ctx.font = GATE_SYMBOL_FONT;
+        let baseWidth = painter.ctx.measureText(baseText).width;
+        painter.ctx.font = subFont;
+        let subWidth = painter.ctx.measureText(subText).width;
+        let totalWidth = baseWidth + subWidth * 0.85;
+        let scaleDown = Math.min(1, rect.w / Math.max(1, totalWidth));
+        let divider = rect.x + rect.w/2 + (baseWidth - subWidth * 0.85) * scaleDown / 2;
+        let cy = rect.y + rect.h/2 + offsetY;
+        painter.print(baseText, divider, cy, 'right', 'middle', 'black', GATE_SYMBOL_FONT, divider - rect.x, rect.h);
+        painter.print(subText, divider + 1, cy + 5, 'left', 'top', 'black', subFont, rect.right() - divider, rect.h);
+        return;
+    }
 
     let splitIndex = allowExponent ? symbol.indexOf('^') : -1;
     let parts = splitIndex === -1 ? [symbol] : [symbol.substr(0, splitIndex), symbol.substr(splitIndex + 1)];

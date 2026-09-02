@@ -209,9 +209,9 @@ Gates.TopToolboxGroups = [
     {
         hint: "Displays",
         gates: [
-            undefined, undefined,
-            DensityMatrixDisplayFamily.ofSize(1), BlochSphereDisplay,
-            ProbabilityDisplayFamily.ofSize(1),   AmplitudeDisplayFamily.ofSize(2)
+            BlochSphereDisplay,
+            ProbabilityDisplayFamily.ofSize(1),
+            AmplitudeDisplayFamily.ofSize(2)
         ]
     },
     {
@@ -219,7 +219,7 @@ Gates.TopToolboxGroups = [
         gates: [
             HalfTurnGates.Z, undefined,
             HalfTurnGates.Y, undefined,
-            HalfTurnGates.X, HalfTurnGates.H
+            HalfTurnGates.X, undefined
         ]
     },
     {
@@ -228,14 +228,6 @@ Gates.TopToolboxGroups = [
             QuarterTurnGates.SqrtZForward, QuarterTurnGates.SqrtZBackward,
             QuarterTurnGates.SqrtYForward, QuarterTurnGates.SqrtYBackward,
             QuarterTurnGates.SqrtXForward, QuarterTurnGates.SqrtXBackward
-        ]
-    },
-    {
-        hint: "Gadgets",
-        gates: [
-            WireCutGate, undefined,
-            CycleBitsGates.CycleBitsFamily.ofSize(2),
-            CycleBitsGates.ReverseCycleBitsFamily.ofSize(2),
         ]
     },
     {
@@ -251,7 +243,15 @@ Gates.TopToolboxGroups = [
         gates: [
             ParametrizedRotationGates.FormulaicRotationRz,
             ParametrizedRotationGates.FormulaicRotationRy,
-            ParametrizedRotationGates.FormulaicRotationRx,
+            ParametrizedRotationGates.FormulaicRotationRx
+        ]
+    },
+    {
+        hint: "Gadgets",
+        gates: [
+            WireCutGate,
+            CycleBitsGates.CycleBitsFamily.ofSize(2),
+            CycleBitsGates.ReverseCycleBitsFamily.ofSize(2)
         ]
     },
 ];

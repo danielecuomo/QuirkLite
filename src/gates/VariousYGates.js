@@ -36,6 +36,7 @@ VariousYGates.Y4 = Gate.fromKnownMatrix(
     Matrix.fromPauliRotation(0, 1 / 8, 0),
     "Y^¼ Gate",
     "Principle fourth root of Y.");
+VariousYGates.Y4.symbol = "Y_π/4";
 VariousYGates.Y4i = Gate.fromKnownMatrix(
     "Y^-¼",
     Matrix.fromPauliRotation(0, -1 / 8, 0),
@@ -43,6 +44,7 @@ VariousYGates.Y4i = Gate.fromKnownMatrix(
     "Adjoint fourth root of Y.",
     undefined,
     VariousYGates.Y4);
+VariousYGates.Y4i.symbol = "Y_-π/4";
 VariousYGates.Y8 = Gate.fromKnownMatrix(
     "Y^⅛",
     Matrix.fromPauliRotation(0, 1 / 16, 0),

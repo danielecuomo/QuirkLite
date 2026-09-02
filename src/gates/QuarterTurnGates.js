@@ -22,6 +22,7 @@ let QuarterTurnGates = {};
 /** @type {!Gate} */
 QuarterTurnGates.SqrtXForward = new GateBuilder().
     setSerializedIdAndSymbol('X^½').
+    setSymbol('X_π/2').
     setTitle("√X Gate").
     setBlurb("Principle square root of Not.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0.25, 0, 0)).
@@ -31,6 +32,7 @@ QuarterTurnGates.SqrtXForward = new GateBuilder().
 QuarterTurnGates.SqrtXBackward = new GateBuilder().
     setAlternate(QuarterTurnGates.SqrtXForward).
     setSerializedIdAndSymbol('X^-½').
+    setSymbol('X_-π/2').
     setTitle("X^-½ Gate").
     setBlurb("Adjoint square root of Not.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0.75, 0, 0)).
@@ -39,6 +41,7 @@ QuarterTurnGates.SqrtXBackward = new GateBuilder().
 /** @type {!Gate} */
 QuarterTurnGates.SqrtYForward = new GateBuilder().
     setSerializedIdAndSymbol('Y^½').
+    setSymbol('Y_π/2').
     setTitle("√Y Gate").
     setBlurb("Principle square root of Y.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0, 0.25, 0)).
@@ -48,6 +51,7 @@ QuarterTurnGates.SqrtYForward = new GateBuilder().
 QuarterTurnGates.SqrtYBackward = new GateBuilder().
     setAlternate(QuarterTurnGates.SqrtYForward).
     setSerializedIdAndSymbol('Y^-½').
+    setSymbol('Y_-π/2').
     setTitle("Y^-½ Gate").
     setBlurb("Adjoint square root of Y.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0, 0.75, 0)).
@@ -56,6 +60,7 @@ QuarterTurnGates.SqrtYBackward = new GateBuilder().
 /** @type {!Gate} */
 QuarterTurnGates.SqrtZForward = new GateBuilder().
     setSerializedIdAndSymbol('Z^½').
+    setSymbol('Z_π/2').
     setTitle("Z^½ Gate").
     setBlurb("Principle square root of Z.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0, 0, 0.25)).
@@ -65,6 +70,7 @@ QuarterTurnGates.SqrtZForward = new GateBuilder().
 QuarterTurnGates.SqrtZBackward = new GateBuilder().
     setAlternate(QuarterTurnGates.SqrtZForward).
     setSerializedIdAndSymbol('Z^-½').
+    setSymbol('Z_-π/2').
     setTitle("Z^-½ Gate").
     setBlurb("Adjoint square root of Z.").
     setKnownEffectToMatrix(Matrix.fromPauliRotation(0, 0, 0.75)).

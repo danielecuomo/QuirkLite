@@ -295,7 +295,7 @@ ParametrizedRotationGates.FormulaicRotationRx = new GateBuilder().
     setSerializedIdAndSymbol("Rxft").
     setTitle("Formula Rx Gate").
     setBlurb("Rotates around X by an angle in radians determined by a formula.").
-    setDrawer(configurableRotationDrawer('Rx(f(t))', 0, 1)).
+    setDrawer(configurableRotationDrawer('X_f(t)', 0, 1)).
     setWidth(2).
     setExtraDisableReasonFinder(badFormulaDetector).
     setOnClickGateFunc(angleClicker("Rx gate's angle in radians")).
@@ -308,7 +308,7 @@ ParametrizedRotationGates.FormulaicRotationRy = new GateBuilder().
     setSerializedIdAndSymbol("Ryft").
     setTitle("Formula Ry Gate").
     setBlurb("Rotates around Y by an angle in radians determined by a formula.").
-    setDrawer(configurableRotationDrawer('Ry(f(t))', 1, 1)).
+    setDrawer(configurableRotationDrawer('Y_f(t)', 1, 1)).
     setWidth(2).
     setExtraDisableReasonFinder(badFormulaDetector).
     setOnClickGateFunc(angleClicker("Ry gate's angle in radians")).
@@ -321,7 +321,7 @@ ParametrizedRotationGates.FormulaicRotationRz = new GateBuilder().
     setSerializedIdAndSymbol("Rzft").
     setTitle("Formula Rz Gate").
     setBlurb("Rotates around Z by an angle in radians determined by a formula.").
-    setDrawer(configurableRotationDrawer('Rz(f(t))', 2, 1)).
+    setDrawer(configurableRotationDrawer('Z_f(t)', 2, 1)).
     setWidth(2).
     setExtraDisableReasonFinder(badFormulaDetector).
     setOnClickGateFunc(angleClicker("Rz gate's angle in radians")).

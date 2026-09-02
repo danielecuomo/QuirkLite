@@ -37,6 +37,7 @@ VariousZGates.Z4 = Gate.fromKnownMatrix(
     "Z^¼ Gate",
     "Principle fourth root of Z.",
     "Z^¼");
+VariousZGates.Z4.symbol = "Z_π/4";
 VariousZGates.Z4i = Gate.fromKnownMatrix(
     "Z^-¼",
     Matrix.fromPauliRotation(0, 0, -1 / 8),
@@ -44,6 +45,7 @@ VariousZGates.Z4i = Gate.fromKnownMatrix(
     "Adjoint fourth root of Z.",
     "Z^-¼",
     VariousZGates.Z4);
+VariousZGates.Z4i.symbol = "Z_-π/4";
 VariousZGates.Z8 = Gate.fromKnownMatrix(
     "Z^⅛",
     Matrix.fromPauliRotation(0, 0, 1 / 16),

@@ -19,9 +19,20 @@ function initMenu(revision, obsIsAnyOverlayShowing) {
         if (showing) closeMenuButton.focus();
     });
     const teleportAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-teleport');
-    teleportAnchor.href = '#circuit={%22cols%22:[[1,%22H%22],[1,%22•%22,%22X%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[1,1,%22%3E%3E4%22],[1,1,%22WireCut%22,%22WireCut%22,%22WireCut%22],[%22•%22,%22X%22],[%22MeasureX%22,%22Measure%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22,1,1,1,%22Bloch%22],[%22WireCut%22,%22WireCut%22,1,1,1,{%22id%22:%22Ryft%22,%22arg%22:%22-pi%20t%22}],[],[1,1,1,1,1,%22Bloch%22]]}';
+    teleportAnchor.href = '#circuit={%22cols%22:[[1,%22Y^%C2%BD%22],[1,%22•%22,%22X%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[%22•%22,%22X%22],[%22MeasureX%22,%22Measure%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22,%22Bloch%22],[%22WireCut%22,%22WireCut%22]]}';
+    // Keep the Teleportation demo tied to the Y(pi/2) circuit even if an older
+    // cached menu or hash is encountered.
+    const teleportCircuitHash = '#circuit={%22cols%22:[[1,%22Y^%C2%BD%22],[1,%22•%22,%22X%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[%22•%22,%22X%22],[%22MeasureX%22,%22Measure%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22,%22Bloch%22],[%22WireCut%22,%22WireCut%22]]}';
+    teleportAnchor.addEventListener('click', e => {
+        e.preventDefault();
+        window.location.hash = teleportCircuitHash.slice(1);
+    });
+    if (window.location.hash.includes('%22H%22],[1,%22•%22,%22X%22],[1,%22Chance2%22')) {
+        window.location.hash = teleportCircuitHash.slice(1);
+    }
+
     const nonLocalityAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-non-locality');
-    nonLocalityAnchor.href = '#circuit={%22cols%22:[[1,%22H%22],[1,%22•%22,%22X%22],[1,%22Amps2%22],[],[%22Bloch%22,%22Chance%22,%22Chance%22,%22Bloch%22],[%22%3C%3C2%22,1,%22%3C%3C2%22],[%22Chance%22,%22Bloch%22,%22Bloch%22,%22Chance%22]]}';
+    nonLocalityAnchor.href = '#circuit={%22cols%22:[[1,%22Y^%C2%BD%22],[1,%22•%22,%22X%22],[1,%22Amps2%22],[],[1,%22Chance2%22],[%22%3C%3C2%22,1,%22%3C%3C2%22],[1,%22WireCut%22,%22WireCut%22],[%22Amps4%22]]}';
 }
 
 export {initMenu, obsMenuIsShowing, closeMenu}

@@ -36,10 +36,24 @@ class DisplayedToolbox {
         '#DCEAF5', // Quarter Turns - powder blue
         '#F3E1C9', // Eighth Turns - peach
         '#F1EBCF', // Formulaic - pale yellow
+        '#E3E3E3', // Gadgets - light gray
     ];
 
-    static toolboxColorForGroup(groupIndex) {
-        return DisplayedToolbox.TOOLBOX_PALETTE[groupIndex % DisplayedToolbox.TOOLBOX_PALETTE.length];
+    static toolboxColorForGroup(group) {
+        switch (group.hint) {
+            case 'Probes': return '#F4D9D6';
+            case 'Displays': return '#DCEFE2';
+            case 'Half Turns': return '#E5DDF3';
+            case 'Quarter Turns': return '#DCEAF5';
+            case 'Eighth Turns': return '#F3E1C9';
+            case 'Formulaic': return '#F1EBCF';
+            case 'Gadgets': return '#E3E3E3';
+            default: return '#E3E3E3';
+        }
+    }
+
+    static isSingleColumnGroup(group) {
+        return group.hint === 'Displays' || group.hint === 'Formulaic' || group.hint === 'Gadgets';
     }
     /**
      * That thing showing gates you can grab.
@@ -122,8 +136,10 @@ class DisplayedToolbox {
      * @private
      */
     gateDrawRect(groupIndex, gateIndex) {
-        let dx = gateIndex % 2;
-        let dy = Math.floor(gateIndex / 2);
+        let group = this.toolboxGroups[groupIndex];
+        let singleColumn = DisplayedToolbox.isSingleColumnGroup(group);
+        let dx = singleColumn ? 0 : gateIndex % 2;
+        let dy = singleColumn ? gateIndex : Math.floor(gateIndex / 2);
 
         let x = Config.TOOLBOX_MARGIN_X +
             dx * Config.TOOLBOX_GATE_SPAN +
@@ -151,7 +167,9 @@ class DisplayedToolbox {
             return new Rect(c.x - Config.TOOLBOX_GATE_SPAN, c.y, Config.TOOLBOX_GATE_SPAN * 2, 20);
         }
 
-        let r = this.gateDrawRect(groupIndex, this.groupHeight*2 - 2);
+        let group = this.toolboxGroups[groupIndex];
+        let lastGateIndex = DisplayedToolbox.isSingleColumnGroup(group) ? group.gates.length - 1 : this.groupHeight*2 - 2;
+        let r = this.gateDrawRect(groupIndex, lastGateIndex);
         let c = new Point(r.x + Config.TOOLBOX_GATE_SPAN - Config.TOOLBOX_GATE_SPACING / 2, r.bottom());
         return new Rect(c.x - Config.TOOLBOX_GATE_SPAN, c.y+2, Config.TOOLBOX_GATE_SPAN * 2, 20);
     }
@@ -278,17 +296,6 @@ class DisplayedToolbox {
      */
     _paintGatesInGroup(painter, hand, groupIndex) {
         let group = this.toolboxGroups[groupIndex];
-        let r = this.groupLabelRect(groupIndex);
-        painter.print(
-            group.hint,
-            r.x + r.w/2,
-            r.y + r.h/2,
-            'center',
-            'middle',
-            'black',
-            '16px sans-serif',
-            r.w,
-            r.h);
 
         for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
             let gate = group.gates[gateIndex];
@@ -296,7 +303,7 @@ class DisplayedToolbox {
                 continue;
             }
             let rect = this.gateDrawRect(groupIndex, gateIndex);
-            DisplayedToolbox._paintGate(painter, hand, gate, rect, false, CircuitStats.EMPTY, DisplayedToolbox.toolboxColorForGroup(groupIndex));
+            DisplayedToolbox._paintGate(painter, hand, gate, rect, false, CircuitStats.EMPTY, DisplayedToolbox.toolboxColorForGroup(group));
         }
     }
 
@@ -343,7 +350,7 @@ class DisplayedToolbox {
         }
 
         // Draw highlight.
-        DisplayedToolbox._paintGate(painter, hand, f.gate, f.rect, true, stats, DisplayedToolbox.toolboxColorForGroup(f.groupIndex));
+        DisplayedToolbox._paintGate(painter, hand, f.gate, f.rect, true, stats, DisplayedToolbox.toolboxColorForGroup(this.toolboxGroups[f.groupIndex]));
 
         // Size tooltip.
         painter.ctx.save();

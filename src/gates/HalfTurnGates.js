@@ -28,6 +28,7 @@ let xShader = ketShaderPermute('', 'return 1.0-out_id;', 1);
 /** @type {!Gate} */
 HalfTurnGates.X = new GateBuilder().
     setSerializedIdAndSymbol("X").
+    setSymbol("X_π").
     setTitle("Pauli X Gate").
     setBlurb("The NOT gate.\nToggles between ON and OFF.").
     setActualEffectToShaderProvider(ctx => xShader.withArgs(...ketArgs(ctx))).
@@ -38,6 +39,7 @@ let yShader = ketShader('', 'vec2 v = inp(1.0-out_id); return (out_id*2.0 - 1.0)
 /** @type {!Gate} */
 HalfTurnGates.Y = new GateBuilder().
     setSerializedIdAndSymbol("Y").
+    setSymbol("Y_π").
     setTitle("Pauli Y Gate").
     setBlurb("A combination of the X and Z gates.").
     setActualEffectToShaderProvider(ctx => yShader.withArgs(...ketArgs(ctx))).
@@ -48,6 +50,7 @@ let zShader = ketShader('', 'return amp*(1.0 - out_id*2.0);', 1);
 /** @type {!Gate} */
 HalfTurnGates.Z = new GateBuilder().
     setSerializedIdAndSymbol("Z").
+    setSymbol("Z_π").
     setTitle("Pauli Z Gate").
     setBlurb("The phase flip gate.\nNegates phases when the qubit is ON.").
     setActualEffectToShaderProvider(ctx => zShader.withArgs(...ketArgs(ctx))).
