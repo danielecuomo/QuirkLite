@@ -199,6 +199,68 @@ document.DEFAULT_CIRCUIT = undefined;
         }
     }
 
+    // Decompose Quirk's maximally-entangling Ising gates into OpenQASM 3
+    // stdgates. Quirk defines IsingPP = exp(-i*pi/4 P⊗P), so the middle
+    // RZ rotation is pi/2 because CX-RZ(theta)-CX implements
+    // exp(-i*theta/2 Z⊗Z).
+    function emitIsing(axis, a, b) {
+        const qa = `q[${a}]`;
+        const qb = `q[${b}]`;
+        const rz = 'rz(pi/2)';
+        if (axis === 'X') {
+            return [
+                `h ${qa};`, `h ${qb};`,
+                `cx ${qa}, ${qb};`, `${rz} ${qb};`, `cx ${qa}, ${qb};`,
+                `h ${qa};`, `h ${qb};`
+            ].join('\n');
+        }
+        if (axis === 'Y') {
+            // Rx(pi/2) Y Rx(-pi/2) = Z.
+            return [
+                `rx(pi/2) ${qa};`, `rx(pi/2) ${qb};`,
+                `cx ${qa}, ${qb};`, `${rz} ${qb};`, `cx ${qa}, ${qb};`,
+                `rx(-pi/2) ${qa};`, `rx(-pi/2) ${qb};`
+            ].join('\n');
+        }
+        if (axis === 'Z') {
+            return [
+                `cx ${qa}, ${qb};`, `${rz} ${qb};`, `cx ${qa}, ${qb};`
+            ].join('\n');
+        }
+        return undefined;
+    }
+
+    // Left/Right Rotate gates are cyclic permutations of a contiguous
+    // block of qubits. OpenQASM has no rotate-permutation primitive, so
+    // decompose them into adjacent SWAPs, and each SWAP into 3 CX gates.
+    // For span=2 this is exactly one SWAP. The order below matches Quirk's
+    // permutation convention: Left Rotate shifts bit positions downward
+    // (row i -> row i+1), while Right Rotate is its inverse.
+    function emitSwap(a, b) {
+        const qa = `q[${a}]`;
+        const qb = `q[${b}]`;
+        return [
+            `cx ${qa}, ${qb};`,
+            `cx ${qb}, ${qa};`,
+            `cx ${qa}, ${qb};`
+        ].join('\n');
+    }
+
+    function emitCycleRotate(id, startRow, span, qubitCount) {
+        if (!Number.isInteger(span) || span < 2 || startRow < 0 || startRow + span > qubitCount) {
+            return undefined;
+        }
+        const pairs = [];
+        if (id.startsWith('<<')) {
+            // Left rotate: [a,b,c] -> [c,a,b].
+            for (let i = startRow + span - 2; i >= startRow; i--) pairs.push([i, i + 1]);
+        } else {
+            // Right rotate: [a,b,c] -> [b,c,a].
+            for (let i = startRow; i < startRow + span - 1; i++) pairs.push([i, i + 1]);
+        }
+        return pairs.map(([a, b]) => emitSwap(a, b)).join('\n');
+    }
+
     function controlledLine(baseId, controls, target) {
         if (controls.length === 0) return undefined;
         const anti = controls.filter(c => c.anti);
@@ -228,7 +290,24 @@ document.DEFAULT_CIRCUIT = undefined;
     function circuitToQasm(circuit) {
         const cols = Array.isArray(circuit.cols) ? circuit.cols : [];
         const init = Array.isArray(circuit.init) ? circuit.init : [];
+        // Serialized Quirk columns only contain an anchor cell plus `1`
+        // placeholders for the rest of a multi-wire gate. Recover the actual
+        // wire count from gates whose height is encoded in their id as well.
+        // In particular, `>>2` may start at row 2 and therefore occupies rows
+        // 2..3 even though the serialized column has only three entries.
         let n = Math.max(init.length, ...cols.map(c => Array.isArray(c) ? c.length : 0), 1);
+        for (const col of cols) {
+            if (!Array.isArray(col)) continue;
+            for (let r = 0; r < col.length; r++) {
+                const g = gateInfo(col[r]);
+                if (!g || typeof g.id !== 'string') continue;
+                let m = /^(?:<<|>>|Amps)(\d+)$/.exec(g.id);
+                if (m) n = Math.max(n, r + Number(m[1]));
+                if (g.id === 'IsingXX' || g.id === 'IsingYY' || g.id === 'IsingZZ') {
+                    n = Math.max(n, r + 2);
+                }
+            }
+        }
 
         // Formulaic Quirk gates use an external OpenQASM parameter named t.
         // The concrete formula/value stored by Quirk is intentionally ignored.
@@ -272,14 +351,47 @@ document.DEFAULT_CIRCUIT = undefined;
             }
 
             if (swaps.length === 2) {
-                out.push(`swap q[${swaps[0]}], q[${swaps[1]}];`);
+                out.push(emitSwap(swaps[0], swaps[1]));
             } else if (swaps.length > 0) {
                 out.push(`// Unsupported SWAP column ${colIndex}: expected exactly two Swap gates.`);
             }
 
+            // CycleBits gates are serialized as <<N / >>N on their anchor row.
+            // They are permutation gates, so emit their exact adjacent-SWAP
+            // decomposition before skipping their anchor cell below.
             for (let r = 0; r < col.length; r++) {
                 const g = gateInfo(col[r]);
-                if (!g || g.id === '•' || g.id === '◦' || g.id === 'Swap') continue;
+                if (!g || typeof g.id !== 'string') continue;
+                const m = /^(<<|>>)(\d+)$/.exec(g.id);
+                if (!m) continue;
+                const span = Number(m[2]);
+                const qasm = emitCycleRotate(g.id, r, span, n);
+                if (qasm !== undefined) out.push(qasm);
+                else out.push(`// Unsupported ${g.id} at row ${r}.`);
+            }
+
+            for (let r = 0; r < col.length; r++) {
+                const g = gateInfo(col[r]);
+                if (!g || g.id === '•' || g.id === '◦' || g.id === 'Swap' || /^(<<|>>)[0-9]+$/.test(g.id)) continue;
+
+                // Ising gates are two-qubit gates in Quirk's model.
+                // Their OpenQASM representation is emitted as a supported
+                // decomposition instead of being marked as unsupported.
+                if (g.id === 'IsingXX' || g.id === 'IsingYY' || g.id === 'IsingZZ') {
+                    const axis = g.id.charAt(5);
+                    const other = r + 1;
+                    if (other < col.length && gateInfo(col[other]) && gateInfo(col[other]).id === g.id) {
+                        // Defensive case for an explicit two-cell encoding.
+                        out.push(emitIsing(axis, r, other));
+                        continue;
+                    }
+                    // Quirk's serialized 2-height gate normally occupies only
+                    // its anchor cell, with the second row implicit.
+                    if (r + 1 < n) {
+                        out.push(emitIsing(axis, r, r + 1));
+                        continue;
+                    }
+                }
 
                 const controlled = controlledLine(g.id, controls, r);
                 if (controlled !== undefined) {
@@ -386,7 +498,7 @@ document.DEFAULT_CIRCUIT = undefined;
                 qasmText.value = circuitToQasm(circuit);
             }
         } catch (e) {
-            qasmText.value = '// Failed to generate OpenQASM:\\n// ' + String(e);
+            qasmText.value = '// Failed to generate OpenQASM:\n// ' + String(e);
         }
         // Show first so the browser can measure the real window dimensions.
         qasmWindow.style.transform = 'none';

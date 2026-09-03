@@ -79,6 +79,7 @@ function initUrlCircuitSync(revision) {
     };
 
     window.addEventListener('popstate', loadCircuitFromUrl);
+    window.addEventListener('hashchange', loadCircuitFromUrl);
     loadCircuitFromUrl();
 
     revision.latestActiveCommit().whenDifferent().skip(1).subscribe(jsonText => {

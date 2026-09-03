@@ -48,6 +48,7 @@ import {ParametrizedRotationGates} from "./ParametrizedRotationGates.js"
 import {PhaseGradientGates} from "./PhaseGradientGates.js"
 import {PivotFlipGates} from "./PivotFlipGates.js"
 import {PostSelectionGates} from "./PostSelectionGates.js"
+import {IsingGates} from "./IsingGates.js"
 import {PoweringGates} from "./PoweringGates.js"
 import {ProbabilityDisplayFamily} from "./ProbabilityDisplay.js"
 import {QuarterTurnGates} from "./QuarterTurnGates.js"
@@ -177,6 +178,7 @@ Gates.KnownToSerializer = [
     ...PhaseGradientGates.all,
     ...PivotFlipGates.all,
     ...PostSelectionGates.all,
+    ...IsingGates.all,
     ...PoweringGates.all,
     ...ReverseBitsGateFamily.all,
     ...ResetGates.all,
@@ -244,6 +246,14 @@ Gates.TopToolboxGroups = [
             ParametrizedRotationGates.FormulaicRotationRz,
             ParametrizedRotationGates.FormulaicRotationRy,
             ParametrizedRotationGates.FormulaicRotationRx
+        ]
+    },
+    {
+        hint: "Ising",
+        gates: [
+            IsingGates.XX,
+            IsingGates.YY,
+            IsingGates.ZZ
         ]
     },
     {

@@ -36,6 +36,7 @@ class DisplayedToolbox {
         '#DCEAF5', // Quarter Turns - powder blue
         '#F3E1C9', // Eighth Turns - peach
         '#F1EBCF', // Formulaic - pale yellow
+        '#D9E8E8', // Ising - pale teal
         '#E3E3E3', // Gadgets - light gray
     ];
 
@@ -47,13 +48,14 @@ class DisplayedToolbox {
             case 'Quarter Turns': return '#DCEAF5';
             case 'Eighth Turns': return '#F3E1C9';
             case 'Formulaic': return '#F1EBCF';
+            case 'Ising': return '#D9E8E8';
             case 'Gadgets': return '#E3E3E3';
             default: return '#E3E3E3';
         }
     }
 
     static isSingleColumnGroup(group) {
-        return group.hint === 'Displays' || group.hint === 'Formulaic' || group.hint === 'Gadgets';
+        return group.hint === 'Displays' || group.hint === 'Formulaic' || group.hint === 'Ising' || group.hint === 'Gadgets';
     }
     /**
      * That thing showing gates you can grab.

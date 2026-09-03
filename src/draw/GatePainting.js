@@ -39,36 +39,44 @@ GatePainting.paintOutline = args => {
 
 GatePainting.paletteColorForGate = gate => {
     let symbol = gate && gate.symbol || '';
+    // Circuit gate colors must match the toolbox group colors. Check the
+    // more-specific rotation/Ising families before the generic X/Y/Z match.
+    if (symbol === 'XX_π/4' || symbol === 'YY_π/4' || symbol === 'ZZ_π/4' ||
+        symbol === 'XX' || symbol === 'YY' || symbol === 'ZZ') {
+        return '#D9E8E8'; // Ising - pale teal
+    }
+    if (symbol.indexOf('^½') >= 0 || symbol.indexOf('^-½') >= 0 ||
+        symbol.indexOf('_π/2') >= 0 || symbol.indexOf('_-π/2') >= 0 ||
+        symbol === 'S' || symbol === 'S^-1') {
+        return '#DCEAF5'; // Quarter Turns - powder blue
+    }
+    if (symbol === 'T' || symbol === 'T^-1' || symbol.indexOf('^¼') >= 0 || symbol.indexOf('^-¼') >= 0 ||
+        symbol.indexOf('_π/4') >= 0 || symbol.indexOf('_-π/4') >= 0) {
+        return '#F3E1C9'; // Eighth Turns - peach
+    }
     if (symbol.indexOf('Measure') === 0 ||
         symbol.indexOf('|0') === 0 || symbol.indexOf('|1') === 0 ||
         symbol.indexOf('|+') === 0 || symbol.indexOf('|-') === 0 ||
         symbol.indexOf('|i') === 0 || symbol.indexOf('•') === 0 || symbol.indexOf('◦') === 0) {
-        return '#F4D9D6'; // dusty rose
+        return '#F4D9D6'; // Probes - dusty rose
     }
     if (symbol.indexOf('Density') === 0 || symbol.indexOf('Bloch') === 0 ||
         symbol.indexOf('Chance') === 0 || symbol.indexOf('Amps') === 0) {
-        return '#DCEFE2'; // mint
+        return '#DCEFE2'; // Displays - mint
     }
     if (symbol === 'X' || symbol === 'Y' || symbol === 'Z' ||
         symbol.indexOf('X_π') === 0 || symbol.indexOf('Y_π') === 0 || symbol.indexOf('Z_π') === 0 ||
         symbol === 'H' || symbol === 'Swap') {
-        return '#E5DDF3'; // lavender
-    }
-    if (symbol.indexOf('^½') >= 0 || symbol.indexOf('^-½') >= 0 ||
-        symbol.indexOf('_π/2') >= 0 || symbol.indexOf('_-π/2') >= 0 || symbol === 'S' || symbol === 'S^-1') {
-        return '#DCEAF5'; // powder blue
-    }
-    if (symbol === 'T' || symbol === 'T^-1' || symbol.indexOf('^¼') >= 0 || symbol.indexOf('^-¼') >= 0 ||
-        symbol.indexOf('_π/4') >= 0 || symbol.indexOf('_-π/4') >= 0) {
-        return '#F3E1C9'; // peach
-    }
-    if (symbol === 'Reset') {
-        return '#DDECE5'; // soft sage
+        return '#E5DDF3'; // Half Turns - lavender
     }
     if (symbol.indexOf('^ft') >= 0 || symbol.indexOf('f(t)') >= 0 ||
         symbol.indexOf('Rxft') === 0 || symbol.indexOf('Ryft') === 0 ||
-        symbol.indexOf('Rzft') === 0) {
-        return '#F1EBCF'; // pale yellow
+        symbol.indexOf('Rzft') === 0 || symbol.indexOf('X_f(t)') === 0 ||
+        symbol.indexOf('Y_f(t)') === 0 || symbol.indexOf('Z_f(t)') === 0) {
+        return '#F1EBCF'; // Formulaic - pale yellow
+    }
+    if (symbol === 'Reset') {
+        return '#DDECE5'; // soft sage
     }
     return undefined;
 };
@@ -81,7 +89,7 @@ GatePainting.paintBackground =
         let backColor = args.isInToolbox
             ? (args.toolboxFillColor || toolboxFillColor)
             : (paletteColor || normalFillColor);
-        if (args.isHighlighted) {
+        if (args.isHighlighted && !args.isInToolbox) {
             backColor = Config.HIGHLIGHTED_GATE_FILL_COLOR;
         }
         args.painter.fillRect(args.rect, backColor);
