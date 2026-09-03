@@ -436,6 +436,21 @@ document.DEFAULT_CIRCUIT = undefined;
                     case 'T†': single = `tdg q[${r}];`; break;
                     case 'Measure': single = `c[${r}] = measure q[${r}];`; break;
                     case 'MeasureX': single = `h q[${r}];\nc[${r}] = measure q[${r}];`; break;
+                    case 'MeasureB':
+                        if (r + 1 >= n) {
+                            single = undefined;
+                        } else {
+                            // Bell measurement = CNOT, then MX on the upper
+                            // qubit and MZ on the lower. OpenQASM has no native
+                            // basis-tagged measurement, so MX is decomposed as H + measure.
+                            single = [
+                                `cx q[${r}], q[${r + 1}];`,
+                                `h q[${r}];`,
+                                `c[${r}] = measure q[${r}];`,
+                                `c[${r + 1}] = measure q[${r + 1}];`
+                            ].join('\n');
+                        }
+                        break;
                     case '|0>': single = `reset q[${r}];`; break;
                     case '|1>': single = `x q[${r}];`; break;
                     case 'Rx':

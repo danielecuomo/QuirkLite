@@ -36,7 +36,7 @@ import {
 import {IncrementGates} from "./IncrementGates.js"
 import {InputGates} from "./InputGates.js"
 import {InterleaveBitsGates} from "./InterleaveBitsGates.js"
-import {MeasurementGate, XMeasurementGate} from "./MeasurementGate.js"
+import {MeasurementGate, XMeasurementGate, BellMeasurementGate} from "./MeasurementGate.js"
 import {ModularIncrementGates} from "./ModularIncrementGates.js"
 import {ModularAdditionGates} from "./ModularAdditionGates.js"
 import {ModularMultiplicationGates} from "./ModularMultiplicationGates.js"
@@ -73,6 +73,7 @@ let Gates = {};
 Gates.Special = {
     Measurement: MeasurementGate,
     XMeasurement: XMeasurementGate,
+    BellMeasurement: BellMeasurementGate,
     WireCut: WireCutGate,
     SwapHalf: SwapGateHalf
 };
@@ -138,6 +139,7 @@ Gates.KnownToSerializer = [
     ...InputGates.all,
     MeasurementGate,
     XMeasurementGate,
+    BellMeasurementGate,
     SwapGateHalf,
     SpacerGate,
     WireCutGate,
@@ -204,8 +206,8 @@ Gates.TopToolboxGroups = [
         hint: "Probes",
         gates: [
             MeasurementGate,                  XMeasurementGate,
-            PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn,
-            Controls.AntiControl,             Controls.Control
+            BellMeasurementGate,
+            PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn
         ]
     },
     {

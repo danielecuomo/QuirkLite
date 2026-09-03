@@ -46,7 +46,7 @@ function drawMeasurementGate(args, axis) {
     }).thenStroke('black');
     // Draw the indicator head.
     args.painter.trace(trace => trace.arrowHead(p, q, r*0.3, a, τ/4)).thenFill('black');
-    let marker = axis === 'X' ? 'x' : 'z';
+    let marker = axis === 'X' ? 'x' : axis === 'B' ? 'B' : 'z';
     args.painter.print(
         marker,
         args.rect.x + args.rect.w*0.16,
@@ -86,19 +86,61 @@ let XMeasurementGate = new GateBuilder().
     setDrawer(args => drawMeasurementGate(args, "X")).
     setExtraDisableReasonFinder(args => {
         if (args.isNested) {
-            return "can't
-nest
-measure
-(sorry)";
+            return "can't\nnest\nmeasure\n(sorry)";
         }
         let isMeasured = (args.measuredMask & (1<<args.outerRow)) !== 0;
         if (args.innerColumn.hasControl() && !isMeasured) {
-            return "can't
-control
-(sorry)";
+            return "can't\ncontrol\n(sorry)";
         }
         return undefined;
     }).
     gate;
 
-export {MeasurementGate, XMeasurementGate}
+
+// Bell-state measurement. Conceptually this is exactly:
+// CNOT (upper -> lower), then an X-basis measurement on the upper qubit,
+// and a Z-basis measurement on the lower qubit.
+//
+// Quirk defers measurements. An X-basis measurement is therefore represented
+// by applying H immediately before the deferred Z-basis sampling. Consequently
+// the only coherent operation that must be applied here is CNOT -> H(upper).
+// There is NO leading H before the CNOT.
+//
+// Matrix convention: the upper wire is the low-order qubit, matching Quirk's
+// contiguous-wire convention. This matrix is H(upper) * CNOT(upper -> lower).
+function bellMeasurementEffect() {
+    const h = Math.sqrt(0.5);
+    return Matrix.square(
+         h,  0,  0,  h,
+         h,  0,  0, -h,
+         0,  h,  h,  0,
+         0, -h,  h,  0);
+}
+
+let BellMeasurementGate = new GateBuilder().
+    setHeight(2).
+    setSerializedIdAndSymbol("MeasureB").
+    setSymbol("Measure^B").
+    setTitle("Bell-State Measurement Gate").
+    setBlurb("Performs a Bell-state measurement on two qubits: CNOT, X-basis measurement, and Z-basis measurement.").
+    setActualEffectToUpdateFunc(ctx => GateShaders.applyMatrixOperation(ctx, bellMeasurementEffect())).
+    // The coherent part of the deferred BSM is unitary (CNOT followed by H on the X-measured qubit).
+    // Declaring its known matrix keeps the renderer from treating the gate as a global-effect/non-unitary gate.
+    setKnownEffectToMatrix(bellMeasurementEffect()).
+    setDrawer(args => drawMeasurementGate(args, "B")).
+    setExtraDisableReasonFinder(args => {
+        if (args.isNested) {
+            return "can't\nnest\nmeasure\n(sorry)";
+        }
+        let measured = args.measuredMask & (3 << args.outerRow);
+        if (measured !== 0) {
+            return "already\nmeasured";
+        }
+        if (args.innerColumn.hasControl()) {
+            return "can't\ncontrol\n(sorry)";
+        }
+        return undefined;
+    }).
+    gate;
+
+export {MeasurementGate, XMeasurementGate, BellMeasurementGate}

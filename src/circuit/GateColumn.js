@@ -418,9 +418,9 @@ class GateColumn {
             return;
         }
 
-        // The measurement gate measures.
-        if (gate === Gates.Special.Measurement || gate === Gates.Special.XMeasurement) {
-            state.measureMask |= 1<<row;
+        // Measurement gates measure their occupied wires. Bell-state measurement spans two wires.
+        if (gate === Gates.Special.Measurement || gate === Gates.Special.XMeasurement || gate === Gates.Special.BellMeasurement) {
+            state.measureMask |= (gate === Gates.Special.BellMeasurement ? 3 : 1) << row;
             return;
         }
 
