@@ -299,7 +299,7 @@ initUndoRedo(revision, obsIsAnyOverlayShowing.observable());
 initClear(revision, obsIsAnyOverlayShowing.observable());
 initMenu(revision, obsIsAnyOverlayShowing.observable());
 initTitleSync(revision);
-    zipLatest(obsExportsIsShowing, (e1, e2) => e1 || e2).
+    obsExportsIsShowing.
     zipLatest(obsMenuIsShowing, (e1, e2) => e1 || e2).
     whenDifferent().
     subscribe(e => {
