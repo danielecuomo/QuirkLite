@@ -28,17 +28,7 @@ import {seq} from "../base/Seq.js"
 import {WidgetPainter} from "../draw/WidgetPainter.js"
 
 class DisplayedToolbox {
-    // Soft, low-saturation colors for the visible toolbox groups.
-    static TOOLBOX_PALETTE = [
-        '#F4D9D6', // Probes - dusty rose
-        '#DCEFE2', // Displays - mint
-        '#E5DDF3', // Half Turns - lavender
-        '#DCEAF5', // Quarter Turns - powder blue
-        '#F3E1C9', // Eighth Turns - peach
-        '#F1EBCF', // Formulaic - pale yellow
-        '#D9E8E8', // Ising - pale teal
-        '#E3E3E3', // Gadgets - light gray
-    ];
+    
 
     static toolboxColorForGroup(group) {
         switch (group.hint) {
