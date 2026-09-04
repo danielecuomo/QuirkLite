@@ -30,17 +30,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Fix canvas coordinate system
+      - name: Fix canvas CSS display size
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('src/draw/Painter.js')
           s = p.read_text()
-          s = s.replace('''    /**\n     * Backing-store scale used to render Canvas content at higher resolution\n     * without changing Quirk\'s logical coordinate system.\n     */\n    static get RENDER_SCALE() { return 2; }\n''', '')
-          s = s.replace('''        // Canvas width/height are the backing-store dimensions. Keep the\n        // logical dimensions separately so all existing painting code keeps\n        // using the original coordinate system.\n        this.logicalWidth = canvas.logicalWidth === undefined ? canvas.width : canvas.logicalWidth;\n        this.logicalHeight = canvas.logicalHeight === undefined ? canvas.height : canvas.logicalHeight;\n        canvas.width = Math.max(1, Math.round(this.logicalWidth * Painter.RENDER_SCALE));\n        canvas.height = Math.max(1, Math.round(this.logicalHeight * Painter.RENDER_SCALE));\n''', '')
-          s = s.replace('        this.ctx.scale(Painter.RENDER_SCALE, Painter.RENDER_SCALE);\n', '')
-          s = s.replace('return new Rect(0, 0, this.logicalWidth, this.logicalHeight);', 'return new Rect(0, 0, this.canvas.width, this.canvas.height);')
-          s = s.replace('this.ctx.fillRect(0, 0, this.logicalWidth, this.logicalHeight);', 'this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);')
+          needle = '''        canvas.width = Math.max(1, Math.round(this.logicalWidth * Painter.RENDER_SCALE));
+        canvas.height = Math.max(1, Math.round(this.logicalHeight * Painter.RENDER_SCALE));
+'''
+          replacement = '''        canvas.width = Math.max(1, Math.round(this.logicalWidth * Painter.RENDER_SCALE));
+        canvas.height = Math.max(1, Math.round(this.logicalHeight * Painter.RENDER_SCALE));
+        canvas.style.width = this.logicalWidth + "px";
+        canvas.style.height = this.logicalHeight + "px";
+'''
+          if needle not in s:
+              raise SystemExit('Expected Painter canvas scaling block not found')
+          s = s.replace(needle, replacement, 1)
           p.write_text(s)
           PY
 
