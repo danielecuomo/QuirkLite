@@ -125,20 +125,8 @@ The custom **Make Gate** workflow is intentionally not exposed by QuirkLite's ma
 
 ## Included examples
 
-The application includes example circuits covering several quantum-computing concepts, including:
-
-- Grover search
-- Shor period finding
-- Bell inequality testing (CHSH)
 - Quantum teleportation
-- Superdense coding
-- Delayed-choice eraser
-- Symmetry breaking
-- Quantum Fourier transform
-- Reversible addition
-- Magic-state distillation
-
-These examples are useful for quickly loading a non-trivial circuit and observing how the simulator represents its state.
+- Non-locality
 
 ## Project structure
 
