@@ -36,6 +36,21 @@ initSerializer(
     GatePainting.MATRIX_DRAWER,
     GATE_CIRCUIT_DRAWER,
     GatePainting.LOCATION_INDEPENDENT_GATE_DRAWER);
+
+// Quirk was originally desktop-first and its HTML does not declare a mobile
+// viewport. Without this declaration, iOS Safari can use a virtual layout
+// viewport (commonly around 980 CSS px) and visually scale the whole page down.
+// The circuit then draws in the larger layout coordinate system while touch
+// events are delivered in the visible viewport coordinate system, producing a
+// pointer-to-gate offset. Install the standard mobile viewport before measuring
+// the canvas so all subsequent geometry uses the same CSS coordinate system.
+if (!document.querySelector('meta[name="viewport"]')) {
+    let viewportMeta = document.createElement('meta');
+    viewportMeta.name = 'viewport';
+    viewportMeta.content = 'width=device-width, initial-scale=1';
+    document.head.appendChild(viewportMeta);
+}
+
 const canvasDiv = document.getElementById("canvasDiv");
 /** @type {!HTMLCanvasElement} */
 const canvas = document.getElementById("drawCanvas");
