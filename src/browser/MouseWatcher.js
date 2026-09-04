@@ -40,11 +40,7 @@ function eventPosRelativeTo(ev, element) {
     let b = element.getBoundingClientRect();
 
     // Mobile Safari has a separate visual viewport when the page is zoomed or
-    // panned. In that situation WebKit can report getBoundingClientRect()
-    // relative to the layout viewport while touch/mouse client coordinates are
-    // relative to the visual viewport. Compensate for that viewport offset.
-    // On normal desktop/non-zoomed pages the offsets are zero, so this reduces
-    // to the usual clientX/Y - rect.left/top calculation.
+    // panned. Compensate for the visual viewport offset when it is available.
     let viewport = window.visualViewport;
     let offsetX = viewport === undefined ? 0 : viewport.offsetLeft;
     let offsetY = viewport === undefined ? 0 : viewport.offsetTop;
@@ -87,6 +83,15 @@ class DragWatcher {
         this._grabActivityTime = window.performance.now();
         this._lastPos = undefined;
         this._lastEv = undefined;
+
+        // The circuit is an application-managed drag surface. Prevent Safari
+        // from turning a one-finger drag into page scrolling or pinch-zooming.
+        // This is especially important on iPad/iPhone where the browser can
+        // otherwise take over the gesture before the application receives the
+        // complete drag sequence.
+        this._element.style.touchAction = 'none';
+        this._element.style.webkitUserSelect = 'none';
+        this._element.style.userSelect = 'none';
     }
 
     addListenersUntilResultInvoked() {
