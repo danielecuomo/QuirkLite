@@ -45,7 +45,12 @@ function eventPosRelativeTo(ev, element) {
     let offsetX = viewport === undefined ? 0 : viewport.offsetLeft;
     let offsetY = viewport === undefined ? 0 : viewport.offsetTop;
 
-    return new Point(ev.clientX + offsetX - b.left, ev.clientY + offsetY - b.top);
+    // The whole document is visually scaled by QuirkLite's default 300% zoom.
+    // Convert viewport coordinates back into the circuit's logical coordinates.
+    let zoom = window.quirkLiteZoom === undefined ? 1 : window.quirkLiteZoom;
+    return new Point(
+        (ev.clientX + offsetX - b.left) / zoom,
+        (ev.clientY + offsetY - b.top) / zoom);
 }
 
 /**
