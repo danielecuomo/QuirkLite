@@ -45,55 +45,6 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Add 4x Cmd-plus zoom
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path('src/main.js')
-          s = p.read_text()
-          marker = 'const canvasDiv = document.getElementById("canvasDiv");'
-          insert = '''let quirkLiteZoom = 1;
-const setQuirkLiteZoom = zoom => {
-    quirkLiteZoom = zoom;
-    window.quirkLiteZoom = zoom;
-    document.documentElement.style.transformOrigin = "0 0";
-    document.documentElement.style.transform = zoom === 1 ? "none" : "scale(" + zoom + ")";
-};
-setQuirkLiteZoom(1);
-document.addEventListener("keydown", ev => {
-    if (!ev.metaKey || ev.ctrlKey || ev.altKey) return;
-    if (ev.key === "+" || ev.key === "=") {
-        ev.preventDefault();
-        setQuirkLiteZoom(4);
-    } else if (ev.key === "0" || ev.key === "-") {
-        ev.preventDefault();
-        setQuirkLiteZoom(1);
-    }
-}, false);
-
-'''
-          if 'const setQuirkLiteZoom = zoom =>' not in s:
-              if marker not in s:
-                  raise SystemExit('Expected main.js canvas marker not found')
-              s = s.replace(marker, insert + marker, 1)
-          p.write_text(s)
-
-          p = Path('src/browser/MouseWatcher.js')
-          s = p.read_text()
-          old = '    return new Point(ev.clientX + offsetX - b.left, ev.clientY + offsetY - b.top);'
-          new = '''    let zoom = window.quirkLiteZoom === undefined ? 1 : window.quirkLiteZoom;
-    return new Point(
-        (ev.clientX + offsetX - b.left) / zoom,
-        (ev.clientY + offsetY - b.top) / zoom);'''
-          if old not in s:
-              raise SystemExit('Expected MouseWatcher coordinate calculation not found')
-          if 'window.quirkLiteZoom' not in s:
-              s = s.replace(old, new, 1)
-          p.write_text(s)
-          PY
-
       - name: Build QuirkLite
         run: npm run build
 
