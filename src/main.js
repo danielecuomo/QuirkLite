@@ -51,6 +51,14 @@ if (!document.querySelector('meta[name="viewport"]')) {
     document.head.appendChild(viewportMeta);
 }
 
+// QuirkLite is intended to be viewed at approximately 300% by default.
+// Use a visual transform instead of CSS zoom because Safari/WebKit has had
+// coordinate inconsistencies with getBoundingClientRect() under CSS zoom.
+const QUIRKLITE_DEFAULT_ZOOM = 3;
+document.documentElement.style.transformOrigin = "0 0";
+document.documentElement.style.transform = "scale(" + QUIRKLITE_DEFAULT_ZOOM + ")";
+window.quirkLiteZoom = QUIRKLITE_DEFAULT_ZOOM;
+
 const canvasDiv = document.getElementById("canvasDiv");
 /** @type {!HTMLCanvasElement} */
 const canvas = document.getElementById("drawCanvas");
