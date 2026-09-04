@@ -38,7 +38,18 @@ let isMiddleClicking = ev => ev.which === 2;
  */
 function eventPosRelativeTo(ev, element) {
     let b = element.getBoundingClientRect();
-    return new Point(ev.clientX - b.left, ev.clientY - b.top);
+
+    // Mobile Safari has a separate visual viewport when the page is zoomed or
+    // panned. In that situation WebKit can report getBoundingClientRect()
+    // relative to the layout viewport while touch/mouse client coordinates are
+    // relative to the visual viewport. Compensate for that viewport offset.
+    // On normal desktop/non-zoomed pages the offsets are zero, so this reduces
+    // to the usual clientX/Y - rect.left/top calculation.
+    let viewport = window.visualViewport;
+    let offsetX = viewport === undefined ? 0 : viewport.offsetLeft;
+    let offsetY = viewport === undefined ? 0 : viewport.offsetTop;
+
+    return new Point(ev.clientX + offsetX - b.left, ev.clientY + offsetY - b.top);
 }
 
 /**
