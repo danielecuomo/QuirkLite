@@ -36,7 +36,6 @@ function rowsNeedRemapping(rows, start) {
 }
 
 function remapControls(controls, selectedRows, shift, bitCount) {
-    let selected = new Set(selectedRows);
     let selectedCount = selectedRows.length;
     let selectedRank = 0;
     let otherRank = 0;
@@ -44,9 +43,11 @@ function remapControls(controls, selectedRows, shift, bitCount) {
     let resultDesired = 0;
     let resultParity = 0;
     for (let sourceRow = 0; sourceRow < bitCount; sourceRow++) {
+        let selectedIndex = selectedRows.indexOf(sourceRow);
         let packedPos;
-        if (selected.has(sourceRow)) {
-            packedPos = selectedRank++;
+        if (selectedIndex >= 0) {
+            packedPos = selectedIndex;
+            selectedRank = Math.max(selectedRank, selectedIndex + 1);
         } else {
             packedPos = selectedCount + otherRank++;
         }
