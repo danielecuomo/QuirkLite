@@ -14,32 +14,18 @@
  * limitations under the License.
  */
 
+import {Config} from "../Config.js"
 import {WglArg} from "../webgl/WglArg.js"
 import {makePseudoShaderWithInputsAndOutputAndCode, Inputs, Outputs} from "../webgl/ShaderCoders.js"
 
 /**
  * Creates a shader for a quantum gate based on a minimalist input like `return cmul(inp(0.0), vec2(0.0, 1.0));`.
  *
- * Available methods and values:
- * - float out_id: The state for which we're computing an amplitude. Note that this state is relativized: when in a
- *                      circuit with more qubits than the gate's span, it determines only the qubits covered by the
- *                      gate. The ketShader mechanism handles iterating your operation over all states of the other
- *                      qubits (i.e. it deals with the tensor product stuff and controlled operation stuff for you).
- * - vec2 inp(float k): returns the amplitude of state k (as a vec2 with x=real, y=imaginary components). Note that
- *                      k is also a relativized state.
- * - float full_out_id: The non-relativized state id. Useful if you want to use the value of other qubits as an
- *                      input (which e.g. the arithmetic gates do).
- * - vec2 amp: The input amplitude of the output state being computed. This value had to be retrieved for the case where
- *             controls aren't satisfied, and as a convenience/optimization-opportunity it's handed to your code.
- * - float span [if you gave an undefined span]: Two to the power of the gate height.
- *
  * @param {!String} head Code that goes outside the output-computing function, for declaring uniforms and helper funcs.
  * @param {!String} body Code that goes inside the output-computing function.
  * @param {null|!int=null} span The height of the gate; the number of qubits it spans.
  * @param {!Array.<!ShaderPartDescription>} inputs
- * @return {!{withArgs: !function(args: ...!WglArg|!WglTexture) : !WglConfiguredShader}} A function that, when given the
- *     args returned by ketArgs when given your input texture and also a WglArg for each custom uniform you defined,
- *     returns a WglConfiguredShader that can be used to renderTo a destination texture.
+ * @return {!{withArgs: !function(args: ...!WglArg|!WglTexture) : !WglConfiguredShader}}
  */
 const ketShader = (head, body, span=null, inputs=[]) => ({withArgs: makePseudoShaderWithInputsAndOutputAndCode(
     [
@@ -115,25 +101,11 @@ const ketShader = (head, body, span=null, inputs=[]) => ({withArgs: makePseudoSh
         return (1.0-c)*vc + c*vt;
     }`)});
 
-/**
- * @param {!String} head
- * @param {!String} body
- * @param {null|!int=null} span
- * @return {!{withArgs: !function(args: ...!WglArg|!WglTexture) : !WglConfiguredShader}}
- */
 const ketShaderPermute = (head, body, span=null) => ketShader(
     head + `float _ketgen_input_for(float out_id) { ${body} }`,
     'return inp(_ketgen_input_for(out_id));',
     span);
 
-/**
- * Returns a configured shader that multiplies each of the amplitudes in a superposition by computed phase factors.
- *
- * @param {!String} head Header code defining shader methods, uniforms, etc.
- * @param {!String} body The body of a shader method returning the number of radians to phase by.
- * @param {null|!int=null} span The number of qubits this operation applies to, if known ahead of time.
- * @return {!{withArgs: !function(args: ...!WglArg|!WglTexture) : !WglConfiguredShader}}
- */
 const ketShaderPhase = (head, body, span=null) => ketShader(
     `${head}
         float _ketgen_phase_for(float out_id) {
@@ -146,14 +118,6 @@ const ketShaderPhase = (head, body, span=null) => ketShader(
     `,
     span);
 
-/**
- * Determines some arguments to give to a shader produced by one of the ketShader methods.
- *
- * @param {!CircuitEvalContext} ctx The context in which the ket shader is being applied.
- * @param {undefined|!int=undefined} span The number of qubits this shader applies to (if wasn't known ahead of time).
- * @param {undefined|!Array.<!string>} input_letters The input gates that this shader cares about.
- * @returns {!Array.<!WglArg>}
- */
 function ketArgs(ctx, span=undefined, input_letters=[]) {
     let qubitRows = ctx.qubitRows;
     if (qubitRows === undefined) {
@@ -185,10 +149,6 @@ function ketArgs(ctx, span=undefined, input_letters=[]) {
     return result;
 }
 
-/**
- * @param {!string} letter
- * @returns {!string}
- */
 function ketInputGateShaderCode(letter) {
     return `
         //////// INPUT GATE ${letter} ////////
@@ -203,11 +163,6 @@ function ketInputGateShaderCode(letter) {
         }`;
 }
 
-/**
- * @param {!CircuitEvalContext} ctx
- * @param {!string} letter
- * @returns {!Array.<!WglArg>}
- */
 function ketInputGateArgs(ctx, letter) {
     let offset = 0;
     let length = -1;
