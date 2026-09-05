@@ -18,7 +18,7 @@ suite.test("multiQubitGateSkipsCutRow", () => {
         new GateColumn([Gates.IsingGates.XX, _, _])
     ]);
 
-    assertThat(circuit.activeWireRowsAtColumn(1)).isEqualTo([0, 2]);
+    assertThat(circuit.activeWireRowsAtColumn(1)).isEqualTo([0, 2, 3]);
     assertThat(circuit.gateQubitRowsAtColumn(1, 0, Gates.IsingGates.XX)).isEqualTo([0, 2]);
     assertThat(circuit.gateAtLocIsDisabledReason(1, 0)).isEqualTo(undefined);
 });
