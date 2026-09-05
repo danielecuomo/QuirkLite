@@ -48,26 +48,7 @@ jobs:
       - name: Restore original Amps draw rectangle
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('src/gates/AmplitudeDisplay.js')
-          s = p.read_text()
-          old = '''    let matrixAspect = matrix.width() / matrix.height();
-    let maxWidthForHeight = args.rect.h * matrixAspect;
-    let drawWidth = Math.min(args.rect.w, maxWidthForHeight);
-    let drawHeight = drawWidth / matrixAspect;
-    let drawRect = new Rect(
-        args.rect.center().x - drawWidth / 2,
-        args.rect.center().y - drawHeight / 2,
-        drawWidth,
-        drawHeight);'''
-          new = '''    let dw = args.rect.w - args.rect.h*ket.width()/ket.height();
-    let drawRect = args.rect.skipLeft(dw/2).skipRight(dw/2);'''
-          if old not in s:
-              raise SystemExit('Expected modified Amps draw rectangle block not found')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
-          PY
+          python3 -c "from pathlib import Path; p=Path('src/gates/AmplitudeDisplay.js'); s=p.read_text(); a=s.index('    let matrixAspect = matrix.width() / matrix.height();'); b=s.index('    let indicatorAlpha', a); s=s[:a]+'    let dw = args.rect.w - args.rect.h*ket.width()/ket.height();\\n    let drawRect = args.rect.skipLeft(dw/2).skipRight(dw/2);\\n'+s[b:]; p.write_text(s)"
 
       - name: Build QuirkLite
         run: npm run build
