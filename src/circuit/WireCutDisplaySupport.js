@@ -10,7 +10,6 @@ import {CircuitShaders} from "./CircuitShaders.js"
 import {rearrangeBits} from "./WireCutShaders.js"
 import {AmplitudeDisplayFamily} from "../gates/AmplitudeDisplay.js"
 import {ProbabilityDisplayFamily} from "../gates/ProbabilityDisplay.js"
-import {currentShaderCoder} from "../webgl/ShaderCoders.js"
 
 function logicalQubitRows(ctx, gate) {
     if (ctx.qubitRows !== undefined) {
@@ -86,7 +85,14 @@ function wrapDisplayGate(gate) {
             return originalMaker(ctx);
         }
 
-        let sizePower = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ctx.stateTrader.currentTexture);
+        let sizePower = 0;
+        if (ctx.stateTrader.currentTexture !== undefined) {
+            sizePower = ctx.stateTrader.currentTexture._sizePower;
+        }
+        if (!Number.isInteger(sizePower)) {
+            sizePower = ctx.wireCount;
+        }
+
         let selectedMask = 0;
         for (let row of rows) {
             selectedMask |= 1 << row;
@@ -95,7 +101,7 @@ function wrapDisplayGate(gate) {
         let remappedState = rearrangeBits(
             ctx.stateTrader.currentTexture,
             selectedMask,
-            ctx.row);
+            ctx.row).toVec2Texture(sizePower);
         let remappedControls = remapControls(
             ctx.controls,
             rows,
