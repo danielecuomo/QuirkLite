@@ -169,12 +169,12 @@ function wrapProbabilityGate(gate) {
 }
 
 for (let gate of AmplitudeDisplayFamily.all) {
-    if (gate.height > 1) {
+    if (gate !== undefined && gate.height > 1) {
         wrapAmplitudeGate(gate);
     }
 }
 for (let gate of ProbabilityDisplayFamily.all) {
-    if (gate.height > 1) {
+    if (gate !== undefined && gate.height > 1) {
         wrapProbabilityGate(gate);
     }
 }
