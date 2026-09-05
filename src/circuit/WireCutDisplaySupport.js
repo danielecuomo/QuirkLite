@@ -10,6 +10,7 @@ import {CircuitShaders} from "./CircuitShaders.js"
 import {rearrangeBits} from "./WireCutShaders.js"
 import {AmplitudeDisplayFamily} from "../gates/AmplitudeDisplay.js"
 import {ProbabilityDisplayFamily} from "../gates/ProbabilityDisplay.js"
+import {currentShaderCoder} from "../webgl/ShaderCoders.js"
 
 function logicalQubitRows(ctx, gate) {
     if (ctx.qubitRows !== undefined) {
@@ -85,19 +86,7 @@ function wrapDisplayGate(gate) {
             return originalMaker(ctx);
         }
 
-        let sizePower = 0;
-        if (ctx.stateTrader.currentTexture !== undefined) {
-            // Both amplitude and probability display makers consume the full
-            // state vector. Keep its Hilbert-space size unchanged while
-            // permuting the selected physical qubits into a contiguous block.
-            sizePower = ctx.stateTrader.currentTexture._sizePower;
-        }
-        if (!Number.isInteger(sizePower)) {
-            // Fall back to the shader coder without importing the probability
-            // implementation just for this query.
-            sizePower = ctx.wireCount;
-        }
-
+        let sizePower = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ctx.stateTrader.currentTexture);
         let selectedMask = 0;
         for (let row of rows) {
             selectedMask |= 1 << row;
