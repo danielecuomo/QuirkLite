@@ -35,21 +35,13 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
         return reason;
     }
 
-    if (reason === "wire ended" && gate.height > 1 && gate.width === 1) {
-        // A single-column multi-qubit operation skips terminated physical rows.
-        // A gate spanning columns cannot do so because the cut changes the topology
-        // while the operation is still in progress.
-        if (this.gateQubitRowsAtColumn(col, row, gate).length === gate.height) {
+    let activeRows = gate.height > 1 ? this.gateQubitRowsAtColumn(col, row, gate) : [];
+    if (activeRows.length === gate.height) {
+        if (reason === "wire ended" && gate.width === 1) {
             return undefined;
         }
-    }
 
-    if (reason === "no\nremix\n(sorry)" && gate.height > 1 && gate.width === 1) {
-        // Re-run the measurement/coherence check using only the surviving rows.
-        // This prevents a measured wire which was subsequently cut from disabling
-        // an operation on the surviving qubits.
-        let activeRows = this.gateQubitRowsAtColumn(col, row, gate);
-        if (activeRows.length === gate.height) {
+        if (reason === "no\nremix\n(sorry)" && gate.width === 1) {
             let activeMask = 0;
             for (let r of activeRows) {
                 activeMask |= 1 << r;
@@ -60,13 +52,18 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
                 return undefined;
             }
         }
-    }
 
-    if (reason === "already\nmeasured" && gate === Gates.Special.BellMeasurement) {
-        // Bell measurement checks two physically adjacent rows internally. Recheck
-        // it against the logical rows so a previously cut row is ignored.
-        let activeRows = this.gateQubitRowsAtColumn(col, row, gate);
-        if (activeRows.length === gate.height) {
+        if (reason === "control\ninside" && gate.width === 1) {
+            for (let i = 1; i < activeRows.length; i++) {
+                let otherGate = this.columns[col].gates[activeRows[i]];
+                if (otherGate !== undefined && otherGate.isControl()) {
+                    return reason;
+                }
+            }
+            return undefined;
+        }
+
+        if (reason === "already\nmeasured" && gate === Gates.Special.BellMeasurement) {
             let measured = 0;
             for (let r of activeRows) {
                 measured |= this.colIsMeasuredMask(col) & (1 << r);
