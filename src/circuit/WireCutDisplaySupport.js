@@ -19,11 +19,24 @@ function logicalQubitRows(ctx, gate) {
     if (ctx.qubitRows !== undefined) {
         return ctx.qubitRows;
     }
+    if (ctx.circuitDefinition !== undefined && ctx.col !== undefined &&
+            ctx.circuitDefinition.gateQubitRowsAtColumn !== undefined) {
+        return ctx.circuitDefinition.gateQubitRowsAtColumn(ctx.col, ctx.row, gate);
+    }
     let result = [];
     for (let i = 0; i < gate.height; i++) {
         result.push(ctx.row + i);
     }
     return result;
+}
+
+function rowsNeedRemapping(rows, start) {
+    for (let i = 0; i < rows.length; i++) {
+        if (rows[i] !== start + i) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function remapControls(controls, selectedRows, shift, bitCount) {
@@ -71,7 +84,8 @@ function wrapAmplitudeGate(gate) {
     let originalPost = gate.customStatPostProcesser;
     gate.customStatTexturesMaker = ctx => {
         let rows = logicalQubitRows(ctx, gate);
-        if (rows.length !== gate.height || ctx.circuitDefinition === undefined) {
+        if (rows.length !== gate.height || ctx.circuitDefinition === undefined ||
+                !rowsNeedRemapping(rows, ctx.row)) {
             return originalMaker(ctx);
         }
         let sizePower = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ctx.stateTrader.currentTexture);
@@ -131,11 +145,15 @@ function wrapProbabilityGate(gate) {
     if (gate === undefined || gate.customStatTexturesMaker === undefined || gate.__wireCutDisplayPatched) {
         return;
     }
+    let originalMaker = gate.customStatTexturesMaker;
     let originalPost = gate.customStatPostProcesser;
     gate.customStatTexturesMaker = ctx => {
         let rows = logicalQubitRows(ctx, gate);
         if (rows.length !== gate.height || ctx.circuitDefinition === undefined) {
-            return undefined;
+            return originalMaker(ctx);
+        }
+        if (!rowsNeedRemapping(rows, ctx.row)) {
+            return originalMaker(ctx);
         }
         let selectedMask = 0;
         for (let row of rows) {
