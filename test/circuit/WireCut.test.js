@@ -37,25 +37,21 @@ suite.test("cut terminates only the cut wire", () => {
 });
 
 suite.test("multi-wire gates cannot bridge a cut", () => {
-    let c = circuit(`-w--
+    let c = circuit(`-w#-
+                     --/-
                      ----
-                     --#-
-                     --/-`);
+                     ----`);
 
-    assertThat(c.gateAtLocIsDisabledReason(2, 2)).isEqualTo("wire ended");
-    assertThat(c.findGateCoveringSlot(2, 2)).isEqualTo(undefined);
-    assertThat(c.findGateCoveringSlot(2, 3)).isEqualTo(undefined);
+    assertThat(c.gateAtLocIsDisabledReason(2, 0)).isEqualTo("wire ended");
+    assertThat(c.findGateCoveringSlot(2, 0)).isEqualTo(undefined);
+    assertThat(c.findGateCoveringSlot(2, 1)).isEqualTo(undefined);
 });
 
 suite.test("multi-wire gates can use surviving physical rows", () => {
-    let c = circuit(`-w--
-                     ----
-                     --#-
-                     --/-`);
     let valid = circuit(`-w--
-                          ----
                           --#-
-                          --/-`);
+                          --/-
+                          ----`);
 
     assertThat(valid.gateAtLocIsDisabledReason(2, 1)).isEqualTo(undefined);
     assertThat(valid.findGateCoveringSlot(2, 1)).isEqualTo({
@@ -63,20 +59,24 @@ suite.test("multi-wire gates can use surviving physical rows", () => {
         row: 1,
         gate: valid.gateInSlot(2, 1)
     });
-    assertThat(c.gateAtLocIsDisabledReason(2, 2)).isEqualTo("wire ended");
+    assertThat(valid.findGateCoveringSlot(2, 2)).isEqualTo({
+        col: 2,
+        row: 1,
+        gate: valid.gateInSlot(2, 1)
+    });
 });
 
 suite.test("cuts disable swaps that touch an ended wire", () => {
-    let c = circuit(`-w--
+    let c = circuit(`-w-s
+                     ---s
                      ----
-                     -s--
-                     -s--`);
+                     ----`);
     let valid = circuit(`-w--
                           ----
                           --s-
                           --s-`);
 
-    assertThat(c.gateAtLocIsDisabledReason(2, 2)).isEqualTo("wire ended");
+    assertThat(c.gateAtLocIsDisabledReason(2, 0)).isEqualTo("wire ended");
     assertThat(c.colGetEnabledSwapGate(2)).isEqualTo(undefined);
     assertThat(valid.colGetEnabledSwapGate(2)).isEqualTo([2, 3]);
 });
