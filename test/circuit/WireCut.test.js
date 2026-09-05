@@ -84,18 +84,19 @@ suite.test("cuts disable swaps that touch an ended wire", () => {
 suite.test("a cut crossed by a multi-column gate invalidates the gate", () => {
     let wide = new GateBuilder().
         setKnownEffectToMatrix(Matrix.zero(4, 4)).
-        setWidth(2).
+        setWidth(3).
         setHeight(2).
         gate;
     let gateMap = Util.mergeMaps(TEST_GATES, new Map([['@', wide]]));
     let c = CircuitDefinition.fromTextDiagram(gateMap, `@---
-                                         /---
-                                         -w--
+                                         /--w-
+                                         ----
                                          ----`);
 
     assertThat(c.gateAtLocIsDisabledReason(0, 0)).isEqualTo("wire ended");
+    assertThat(c.gateOverlapsWireCut(0, 0, wide)).isTrue();
     assertThat(c.findGateCoveringSlot(0, 0)).isEqualTo(undefined);
-    assertThat(c.gateAtLocIsDisabledReason(2, 2)).isEqualTo(undefined);
+    assertThat(c.gateAtLocIsDisabledReason(2, 1)).isEqualTo(undefined);
 });
 
 export {suite}
