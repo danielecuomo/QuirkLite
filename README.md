@@ -1,6 +1,6 @@
 # QuirkLite
 
-[![GitHub](https://img.shields.io/badge/GitHub-QuirkLite-black?logo=github)](https://github.com/danielecuomo/QuirkLite)
+**[Open QuirkLite](https://danielecuomo.github.io/QuirkLite/)**
 
 ![Demo](assets/demo1.gif)
 
