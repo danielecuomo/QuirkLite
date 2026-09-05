@@ -10,7 +10,7 @@ import {WglArg} from "../webgl/WglArg.js"
 import {Inputs, Outputs, currentShaderCoder, makePseudoShaderWithInputsAndOutputAndCode} from "../webgl/ShaderCoders.js"
 
 function rearrangeBits(inputTexture, selectedMask, shift=0) {
-    return REARRANGE_BITS_SHADER.withArgs(
+    return REARRANGE_BITS_SHADER(
         inputTexture,
         WglArg.float("selectedMask", selectedMask),
         WglArg.float("shift", shift),
@@ -18,7 +18,7 @@ function rearrangeBits(inputTexture, selectedMask, shift=0) {
 }
 
 function rearrangeFloatBits(inputTexture, selectedMask, shift=0) {
-    return REARRANGE_FLOAT_BITS_SHADER.withArgs(
+    return REARRANGE_FLOAT_BITS_SHADER(
         inputTexture,
         WglArg.float("selectedMask", selectedMask),
         WglArg.float("shift", shift),
