@@ -50,14 +50,18 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('src/gates/AmplitudeDisplay.js')
           s = p.read_text()
-          old = '    let dw = args.rect.w - args.rect.h * ket.width() / ket.height();\n    let drawRect = args.rect.skipLeft(dw/2).skipRight(dw/2);\n'
-          new = '    let side = Math.min(args.rect.w, args.rect.h);\n    let dx = (args.rect.w - side) / 2;\n    let dy = (args.rect.h - side) / 2;\n    let drawRect = args.rect.skipLeft(dx).skipRight(dx).skipTop(dy).skipBottom(dy);\n'
-          if old not in s:
-              raise SystemExit('Expected original Amps draw rectangle not found')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
+          pattern = r'    let drawRect = new Rect\(\s*args\.rect\.center\(\)\.x - drawWidth / 2,\s*args\.rect\.center\(\)\.y - drawHeight / 2,\s*drawWidth,\s*drawHeight\);'
+          replacement = '''    let side = Math.min(args.rect.w, args.rect.h);
+          let dx = (args.rect.w - side) / 2;
+          let dy = (args.rect.h - side) / 2;
+          let drawRect = args.rect.skipLeft(dx).skipRight(dx).skipTop(dy).skipBottom(dy);'''
+          s2, count = re.subn(pattern, replacement, s, count=1)
+          if count != 1:
+              raise SystemExit('Expected Amps draw rectangle not found')
+          p.write_text(s2)
           PY
 
       - name: Build QuirkLite
