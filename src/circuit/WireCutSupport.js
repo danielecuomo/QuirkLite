@@ -99,15 +99,16 @@ function gateHasLogicalRowOverlap(circuit, col, row, gate) {
     if (rows.length !== gate.height) {
         return false;
     }
-    let usedRows = new Set(rows);
     for (let otherRow = 0; otherRow < row; otherRow++) {
         let otherGate = circuit.columns[col].gates[otherRow];
         if (otherGate === undefined || otherGate.isWireCut || otherGate.isControl()) {
             continue;
         }
         let otherRows = circuit.gateQubitRowsAtColumn(col, otherRow, otherGate);
-        if (otherRows.some(r => usedRows.has(r))) {
-            return true;
+        for (let otherPhysicalRow of otherRows) {
+            if (rows.indexOf(otherPhysicalRow) >= 0) {
+                return true;
+            }
         }
     }
     return false;
