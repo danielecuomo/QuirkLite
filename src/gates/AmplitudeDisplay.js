@@ -101,13 +101,6 @@ function _partialTraceCutQubits(ketPixels, span, cutMask) {
     let keptCount = 1 << keptSpan;
     let traceCount = 1 << tracedCount;
 
-    let keptPositions = [];
-    for (let bit = 0; bit < span; bit++) {
-        if ((cutMask & (1 << bit)) === 0) {
-            keptPositions.push(bit);
-        }
-    }
-
     let physicalIndex = (kept, traced) => {
         let result = 0;
         let keptBit = 0;
@@ -431,6 +424,7 @@ let AmplitudeDisplayFamily = Gate.buildFamily(1, 16, (span, builder) => builder.
     setDrawer(AMPLITUDE_DRAWER_FROM_CUSTOM_STATS));
 
 export {
+    amplitudeDisplayStatTextures,
     AmplitudeDisplayFamily,
     AMPS_TO_SQUARED_MAGS_SHADER,
     MAGS_TO_INDEXED_MAGS_SHADER,
