@@ -8,17 +8,13 @@
 import {CircuitDefinition} from "./CircuitDefinition.js"
 import {GateColumn} from "./GateColumn.js"
 import {Gates} from "../gates/AllGates.js"
+import {Config} from "../Config.js"
 
 const originalActiveWireRowsAtColumn = CircuitDefinition.prototype.activeWireRowsAtColumn;
 CircuitDefinition.prototype.activeWireRowsAtColumn = function(col) {
     let result = originalActiveWireRowsAtColumn.call(this, col);
-
-    // Once all existing wires below a cut have ended, a subsequent multi-wire
-    // gate can continue on newly created wires at the bottom of the circuit.
-    // Treat those implicit wires as the next logical live rows. This keeps the
-    // simulator and the gate geometry on the same row mapping.
     let physicalRow = this.numWires;
-    while (result.length < this.numWires) {
+    while (result.length < this.numWires && physicalRow < Config.MAX_WIRE_COUNT) {
         result.push(physicalRow++);
     }
     return result;
@@ -42,7 +38,6 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
             break;
         }
     }
-
     return result;
 };
 
@@ -61,7 +56,7 @@ CircuitDefinition.prototype.minimumRequiredWireCount = function() {
             }
         }
     }
-    return result;
+    return Math.min(Config.MAX_WIRE_COUNT, result);
 };
 
 function gateCrossesLaterWireCut(circuit, col, row, gate) {
@@ -79,6 +74,31 @@ function gateCrossesLaterWireCut(circuit, col, row, gate) {
     return false;
 }
 
+function gateHasLogicalRowOverlap(circuit, col, row, gate) {
+    if (gate === undefined || gate.isWireCut || gate.isControl()) {
+        return false;
+    }
+    let rows = circuit.gateQubitRowsAtColumn(col, row, gate);
+    if (rows.length !== gate.height) {
+        return false;
+    }
+    let usedRows = new Set(rows);
+    for (let otherRow = 0; otherRow < circuit.numWires; otherRow++) {
+        if (otherRow === row) {
+            continue;
+        }
+        let otherGate = circuit.columns[col].gates[otherRow];
+        if (otherGate === undefined || otherGate.isWireCut || otherGate.isControl()) {
+            continue;
+        }
+        let otherRows = circuit.gateQubitRowsAtColumn(col, otherRow, otherGate);
+        if (otherRows.some(r => usedRows.has(r))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const originalGateAtLocIsDisabledReason = CircuitDefinition.prototype.gateAtLocIsDisabledReason;
 CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
     let reason = originalGateAtLocIsDisabledReason.call(this, col, row);
@@ -89,12 +109,9 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
 
     let activeRows = gate.height > 1 ? this.gateQubitRowsAtColumn(col, row, gate) : [];
     if (activeRows.length === gate.height) {
-        // A multi-qubit gate may skip qubits that were cut before this column.
-        // It must still be rejected if a cut occurs in a later column covered
-        // by the gate, because that would make the operation span a dead wire.
         if (reason === "wire ended" && gate.height > 1 &&
                 !gateCrossesLaterWireCut(this, col, row, gate)) {
-            return undefined;
+            reason = undefined;
         }
 
         if (reason === "no\nremix\n(sorry)" && gate.width === 1) {
@@ -107,18 +124,22 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
             let recomputed = new GateColumn(this.columns[col].gates).
                 _disabledReason_remixing(row, this.colIsMeasuredMask(col) & activeMask);
             if (recomputed === undefined) {
-                return undefined;
+                reason = undefined;
             }
         }
 
         if (reason === "control\ninside" && gate.width === 1) {
+            let hasControlInside = false;
             for (let i = 1; i < activeRows.length; i++) {
                 let otherGate = activeRows[i] < this.numWires ? this.columns[col].gates[activeRows[i]] : undefined;
                 if (otherGate !== undefined && otherGate.isControl()) {
-                    return reason;
+                    hasControlInside = true;
+                    break;
                 }
             }
-            return undefined;
+            if (!hasControlInside) {
+                reason = undefined;
+            }
         }
 
         if (reason === "already\nmeasured" && gate === Gates.Special.BellMeasurement) {
@@ -129,11 +150,14 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
                 }
             }
             if (measured === 0) {
-                return undefined;
+                reason = undefined;
             }
         }
     }
 
+    if (reason === undefined && gateHasLogicalRowOverlap(this, col, row, gate)) {
+        return "overlapping";
+    }
     return reason;
 };
 
@@ -142,13 +166,11 @@ CircuitDefinition.prototype._applyOpsInCol = function(colIndex, ctx, opGetter) {
         return;
     }
     let col = this.columns[colIndex];
-
     for (let row = 0; row < this.numWires; row++) {
         let gate = col.gates[row];
         if (gate === undefined || this.gateAtLocIsDisabledReason(colIndex, row) !== undefined) {
             continue;
         }
-
         let op = opGetter(gate);
         if (op !== undefined) {
             let qubitRows = this.gateQubitRowsAtColumn(colIndex, row, gate);
