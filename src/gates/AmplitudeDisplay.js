@@ -35,53 +35,39 @@ import {
 import {WglTexturePool} from "../webgl/WglTexturePool.js"
 import {WglTextureTrader} from "../webgl/WglTextureTrader.js"
 
-/**
- * @param {!WglTexture} stateKet
- * @param {!Controls} controls
- * @param {!WglTexture} controlsTexture
- * @param {!int} rangeOffset
- * @param {!int} rangeLength
- * @returns {!Array.<!WglTexture>}
- */
 function amplitudeDisplayStatTextures(stateKet, controls, controlsTexture, rangeOffset, rangeLength) {
     let incoherentKet = probabilityStatTexture(stateKet, controlsTexture, rangeOffset, rangeLength);
 
     let trader = new WglTextureTrader(stateKet);
     trader.dontDeallocCurrentTexture();
 
-    // Put into normal form by throwing away areas not satisfying the controls and cycling the offset away.
     let startingQubits = currentShaderCoder().vec2.arrayPowerSizeOfTexture(stateKet);
     let lostQubits = Util.numberOfSetBits(controls.inclusionMask);
     let lostHeadQubits = Util.numberOfSetBits(controls.inclusionMask & ((1<<rangeOffset)-1));
     let involvedQubits = startingQubits - lostQubits;
     let broadcastQubits = involvedQubits - rangeLength;
 
-    // Get relevant case vectors.
     trader.shadeAndTrade(
         tex => CircuitShaders.controlSelect(controls, tex),
         WglTexturePool.takeVec2Tex(involvedQubits));
     trader.shadeAndTrade(tex => GateShaders.cycleAllBits(tex, lostHeadQubits-rangeOffset));
     let ketJustAfterCycle = trader.dontDeallocCurrentTexture();
 
-    // Compute magnitude of each case's vector.
     trader.shadeAndTrade(AMPS_TO_SQUARED_MAGS_SHADER, WglTexturePool.takeVecFloatTex(involvedQubits));
     for (let k = 0; k < rangeLength; k++) {
         trader.shadeHalveAndTrade(Shaders.sumFoldFloatAdjacents);
     }
 
-    // Find the index of the case with the largest vector.
     trader.shadeAndTrade(MAGS_TO_INDEXED_MAGS_SHADER, WglTexturePool.takeVec2Tex(broadcastQubits));
     for (let k = 0; k < broadcastQubits; k++) {
         trader.shadeHalveAndTrade(FOLD_MAX_INDEXED_MAG_SHADER);
     }
 
-    // Lookup the components of the largest vector.
     trader.shadeAndTrade(
         indexed_mag => LOOKUP_KET_AT_INDEXED_MAG_SHADER(ketJustAfterCycle, indexed_mag),
         WglTexturePool.takeVec2Tex(rangeLength));
     let rawKet = trader.dontDeallocCurrentTexture();
 
-    // Compute the dot product of the largest vector against every other vector.
     trader.shadeAndTrade(
         small_input => POINTWISE_CMUL_CONJ_SHADER(small_input, ketJustAfterCycle),
         WglTexturePool.takeVec2Tex(involvedQubits));
@@ -90,7 +76,6 @@ function amplitudeDisplayStatTextures(stateKet, controls, controlsTexture, range
         trader.shadeHalveAndTrade(Shaders.sumFoldVec2Adjacents);
     }
 
-    // Sum up the magnitudes of the dot products to get a quality metric for how well the largest vector worked.
     trader.shadeAndTrade(AMPS_TO_SQUARED_MAGS_SHADER, WglTexturePool.takeVecFloatTex(broadcastQubits));
     for (let k = 0; k < broadcastQubits; k++) {
         trader.shadeHalveAndTrade(Shaders.sumFoldFloat);
@@ -110,21 +95,6 @@ function amplitudeDisplayStatTextures(stateKet, controls, controlsTexture, range
     return [ket, denormalizedQuality, incoherentKet];
 }
 
-
-/**
- * Traces the selected qubits out of the state vector represented by an Amps
- * display. The state is reshaped into a matrix whose rows are surviving basis
- * states and whose columns are assignments of the traced qubits. The reduced
- * state is pure exactly when this matrix has rank one; checking rank one this
- * way is linear in the number of amplitudes instead of constructing a dense
- * density matrix.
- *
- * @param {!Float32Array} ketPixels
- * @param {!int} span
- * @param {!int} cutMask
- * @returns {!{ketPixels: !Float32Array, incoherentKetPixels: !Float32Array, isMixed: !boolean}}
- * @private
- */
 function _partialTraceCutQubits(ketPixels, span, cutMask) {
     let tracedCount = Util.numberOfSetBits(cutMask);
     let keptSpan = span - tracedCount;
@@ -138,7 +108,6 @@ function _partialTraceCutQubits(ketPixels, span, cutMask) {
         }
     }
 
-    // Map a compact (kept, traced) pair back to the physical basis index.
     let physicalIndex = (kept, traced) => {
         let result = 0;
         let keptBit = 0;
@@ -182,8 +151,6 @@ function _partialTraceCutQubits(ketPixels, span, cutMask) {
         };
     }
 
-    // For a pure reduced state, every traced-qubit column is proportional to
-    // the pivot column. Measure the normalized reconstruction error.
     let pivotIndex = physicalIndex(pivotKept, pivotTrace) * 2;
     let pr = ketPixels[pivotIndex];
     let pi = ketPixels[pivotIndex + 1];
@@ -223,8 +190,6 @@ function _partialTraceCutQubits(ketPixels, span, cutMask) {
         };
     }
 
-    // The pivot column is proportional to the surviving subsystem ket.
-    // Normalize it; the later phase-locking pass chooses the display reference.
     let norm = Math.sqrt(probabilities[pivotKept] || 0);
     let compactKet = new Float32Array(keptCount * 2);
     for (let kept = 0; kept < keptCount; kept++) {
@@ -240,21 +205,10 @@ function _partialTraceCutQubits(ketPixels, span, cutMask) {
     };
 }
 
-/**
- * @param {!int} span
- * @param {!Array.<!Float32Array>} pixelGroups
- * @param {!CircuitDefinition} circuitDefinition
- * @returns {!{quality: !number, ket: !Matrix, phaseLockIndex: !int,incoherentKet: !Matrix}}
- */
 function processOutputs(span, pixelGroups, circuitDefinition, col, row) {
     let [ketPixels, qualityPixels, rawIncoherentKetPixels] = pixelGroups;
     let denormalizedQuality = qualityPixels[0];
 
-    // Wire cuts remove qubits from the logical system. Do not assume that a cut
-    // qubit is in |0>: it may be entangled with the surviving wires. Instead,
-    // perform a partial trace over every cut qubit covered by this Amps display.
-    // The physical row indices remain unchanged; only the displayed Hilbert
-    // space is compacted.
     let cutMask = circuitDefinition.colIsWireCutMask(col);
     let localCutMask = (cutMask >>> row) & ((1 << span) - 1);
     if (localCutMask !== 0) {
@@ -262,8 +216,6 @@ function processOutputs(span, pixelGroups, circuitDefinition, col, row) {
         ketPixels = traced.ketPixels;
         rawIncoherentKetPixels = traced.incoherentKetPixels;
         if (traced.isMixed) {
-            // A reduced density matrix has no amplitude vector when it is mixed.
-            // Force the existing Amps renderer down its probability/incoherent path.
             denormalizedQuality = 0;
         }
     }
@@ -273,7 +225,6 @@ function processOutputs(span, pixelGroups, circuitDefinition, col, row) {
     let w = n === 2 ? 2 : 1 << Math.floor(Math.round(Math.log2(n))/2);
     let h = n/w;
 
-    // Rescale quantities.
     let unity = 0;
     for (let e of ketPixels) {
         unity += e*e;
@@ -317,11 +268,6 @@ function processOutputs(span, pixelGroups, circuitDefinition, col, row) {
     };
 }
 
-/**
- * @param {!Float32Array} ketPixels
- * @returns {!int}
- * @private
- */
 function _processOutputs_pickPhaseLockIndex(ketPixels) {
     let result = 0;
     let best = 0;
@@ -382,9 +328,6 @@ const POINTWISE_CMUL_CONJ_SHADER = makePseudoShaderWithInputsAndOutputAndCode(
     }
     `);
 
-/**
- * @type {!function(!GateDrawParams)}
- */
 const AMPLITUDE_DRAWER_FROM_CUSTOM_STATS = GatePainting.makeDisplayDrawer(args => {
     let n = args.gate.height;
     let {quality, ket, phaseLockIndex, incoherentKet} = args.customStats || {
@@ -396,8 +339,15 @@ const AMPLITUDE_DRAWER_FROM_CUSTOM_STATS = GatePainting.makeDisplayDrawer(args =
 
     let isIncoherent = quality < 0.99;
     let matrix = isIncoherent ? incoherentKet : ket;
-    let dw = args.rect.w - args.rect.h*ket.width()/ket.height();
-    let drawRect = args.rect.skipLeft(dw/2).skipRight(dw/2);
+    let matrixAspect = matrix.width() / matrix.height();
+    let maxWidthForHeight = args.rect.h * matrixAspect;
+    let drawWidth = Math.min(args.rect.w, maxWidthForHeight);
+    let drawHeight = drawWidth / matrixAspect;
+    let drawRect = new Rect(
+        args.rect.center().x - drawWidth / 2,
+        args.rect.center().y - drawHeight / 2,
+        drawWidth,
+        drawHeight);
     let indicatorAlpha = Math.min(1, Math.max(0, (quality - 0.9999) / 0.0001));
     MathPainter.paintMatrix(
         args.painter,
@@ -420,20 +370,12 @@ const AMPLITUDE_DRAWER_FROM_CUSTOM_STATS = GatePainting.makeDisplayDrawer(args =
             (c, r) => `Amplitude of |${Util.bin(r*matrix.width() + c, Math.round(Math.log2(matrix.width()*matrix.height())))}⟩ (decimal ${r*matrix.width() + c})`,
             (c, r, v) => 'val:' + v.toString(new Format(false, 0, 5, ", ")),
             (c, r, v) => `mag²:${(v.norm2()*100).toFixed(4)}%, phase:${forceSign(v.phase() * 180 / Math.PI)}°`);
-        // Quirk internally chooses a phase reference so the displayed phases are
-        // relative to a well-defined global phase. Keep that calculation, but do
-        // not render the reference marker/"fixed" label in the Amps display.
     }
 
     paintErrorIfPresent(args, indicatorAlpha);
 });
 
-/**
- * @param {!GateDrawParams} args
- * @param {!number} indicatorAlpha
- */
 function paintErrorIfPresent(args, indicatorAlpha) {
-    /** @type {undefined|!string} */
     let err = undefined;
     let {col, row} = args.positionInCircuit;
     let measured = ((args.stats.circuitDefinition.colIsMeasuredMask(col) >> row) & ((1 << args.gate.height) - 1)) !== 0;
@@ -458,9 +400,6 @@ function paintErrorIfPresent(args, indicatorAlpha) {
     }
 }
 
-/**
- * @param {!{quality: !number, ket: !Matrix, phaseLockIndex: !int,incoherentKet: !Matrix}} customStats
- */
 function customStatsToJsonData(customStats) {
     let {quality, ket, phaseLockIndex, incoherentKet} = customStats;
     let n = ket.width() * ket.height();
@@ -498,5 +437,4 @@ export {
     FOLD_MAX_INDEXED_MAG_SHADER,
     LOOKUP_KET_AT_INDEXED_MAG_SHADER,
     POINTWISE_CMUL_CONJ_SHADER,
-    amplitudeDisplayStatTextures,
 };
