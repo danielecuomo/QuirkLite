@@ -13,6 +13,9 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
     if (gate === undefined || col < 0 || col >= this.columns.length || row < 0 || row >= this.numWires) {
         return [];
     }
+    if ((this.colIsWireCutMask(col) & (1 << row)) !== 0) {
+        return [];
+    }
     let activeRows = this.activeWireRowsAtColumn(col);
     let result = [];
     for (let physicalRow of activeRows) {
