@@ -168,12 +168,12 @@ function wrapProbabilityGate(gate) {
     gate.__wireCutDisplayPatched = true;
 }
 
-for (let gate of AmplitudeDisplayFamily.gateFamily) {
+for (let gate of AmplitudeDisplayFamily.all) {
     if (gate.height > 1) {
         wrapAmplitudeGate(gate);
     }
 }
-for (let gate of ProbabilityDisplayFamily.gateFamily) {
+for (let gate of ProbabilityDisplayFamily.all) {
     if (gate.height > 1) {
         wrapProbabilityGate(gate);
     }
