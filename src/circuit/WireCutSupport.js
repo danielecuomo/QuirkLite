@@ -6,11 +6,9 @@
  */
 
 import {CircuitDefinition} from "./CircuitDefinition.js"
+import {GateColumn} from "./GateColumn.js"
+import {Gates} from "../gates/AllGates.js"
 
-/**
- * Returns the physical rows occupied by a logical multi-qubit gate after
- * skipping wires which were cut before the gate's column.
- */
 CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
     if (gate === undefined || col < 0 || col >= this.columns.length || row < 0 || row >= this.numWires) {
         return [];
@@ -32,19 +30,54 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
 const originalGateAtLocIsDisabledReason = CircuitDefinition.prototype.gateAtLocIsDisabledReason;
 CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
     let reason = originalGateAtLocIsDisabledReason.call(this, col, row);
-    if (reason !== "wire ended") {
-        return reason;
-    }
-
     let gate = this.gateInSlot(col, row);
-    if (gate === undefined || gate.height <= 1 || gate.width !== 1) {
+    if (gate === undefined) {
         return reason;
     }
 
-    // A single-column multi-qubit operation may skip terminated physical rows.
-    // A gate spanning columns cannot do so because the cut changes the topology
-    // while the operation is still in progress.
-    return this.gateQubitRowsAtColumn(col, row, gate).length === gate.height ? undefined : reason;
+    if (reason === "wire ended" && gate.height > 1 && gate.width === 1) {
+        // A single-column multi-qubit operation skips terminated physical rows.
+        // A gate spanning columns cannot do so because the cut changes the topology
+        // while the operation is still in progress.
+        if (this.gateQubitRowsAtColumn(col, row, gate).length === gate.height) {
+            return undefined;
+        }
+    }
+
+    if (reason === "no\nremix\n(sorry)" && gate.height > 1 && gate.width === 1) {
+        // Re-run the measurement/coherence check using only the surviving rows.
+        // This prevents a measured wire which was subsequently cut from disabling
+        // an operation on the surviving qubits.
+        let activeRows = this.gateQubitRowsAtColumn(col, row, gate);
+        if (activeRows.length === gate.height) {
+            let activeMask = 0;
+            for (let r of activeRows) {
+                activeMask |= 1 << r;
+            }
+            let recomputed = new GateColumn(this.columns[col].gates).
+                _disabledReason_remixing(row, this.colIsMeasuredMask(col) & activeMask);
+            if (recomputed === undefined) {
+                return undefined;
+            }
+        }
+    }
+
+    if (reason === "already\nmeasured" && gate === Gates.Special.BellMeasurement) {
+        // Bell measurement checks two physically adjacent rows internally. Recheck
+        // it against the logical rows so a previously cut row is ignored.
+        let activeRows = this.gateQubitRowsAtColumn(col, row, gate);
+        if (activeRows.length === gate.height) {
+            let measured = 0;
+            for (let r of activeRows) {
+                measured |= this.colIsMeasuredMask(col) & (1 << r);
+            }
+            if (measured === 0) {
+                return undefined;
+            }
+        }
+    }
+
+    return reason;
 };
 
 CircuitDefinition.prototype._applyOpsInCol = function(colIndex, ctx, opGetter) {
