@@ -15,6 +15,7 @@
  */
 
 import {WglConfiguredShader} from "../webgl/WglConfiguredShader.js"
+import "./WireCutSupport.js"
 
 /**
  * Values used by the various gate effects.
