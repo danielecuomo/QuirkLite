@@ -6,15 +6,13 @@
  */
 
 import {Suite, assertThat} from "../TestUtil.js"
-import {CircuitDefinition} from "../../src/circuit/CircuitDefinition.js"
 import {GateBuilder} from "../../src/circuit/Gate.js"
-import {GateColumn} from "../../src/circuit/GateColumn.js"
+import {CircuitDefinition} from "../../src/circuit/CircuitDefinition.js"
 import {Gates} from "../../src/gates/AllGates.js"
 import {Matrix} from "../../src/math/Matrix.js"
 import {Util} from "../../src/base/Util.js"
 
 let suite = new Suite("WireCut");
-const _ = undefined;
 
 const TEST_GATES = new Map([
     ['-', undefined],
@@ -41,19 +39,19 @@ suite.test("cut terminates only the cut wire", () => {
 suite.test("multi-wire gates cannot bridge a cut", () => {
     let c = circuit(`-w--
                      ----
-                     -#--
-                     -/--`);
+                     --#-
+                     --/-`);
 
-    assertThat(c.gateAtLocIsDisabledReason(2, 0)).isEqualTo("wire ended");
-    assertThat(c.findGateCoveringSlot(2, 0)).isEqualTo(undefined);
-    assertThat(c.findGateCoveringSlot(2, 1)).isEqualTo(undefined);
+    assertThat(c.gateAtLocIsDisabledReason(2, 2)).isEqualTo("wire ended");
+    assertThat(c.findGateCoveringSlot(2, 2)).isEqualTo(undefined);
+    assertThat(c.findGateCoveringSlot(2, 3)).isEqualTo(undefined);
 });
 
 suite.test("multi-wire gates can use surviving physical rows", () => {
     let c = circuit(`-w--
                      ----
-                     -#--
-                     -/--`);
+                     --#-
+                     --/-`);
     let valid = circuit(`-w--
                           ----
                           --#-
@@ -65,7 +63,7 @@ suite.test("multi-wire gates can use surviving physical rows", () => {
         row: 1,
         gate: valid.gateInSlot(2, 1)
     });
-    assertThat(c.gateAtLocIsDisabledReason(2, 0)).isEqualTo("wire ended");
+    assertThat(c.gateAtLocIsDisabledReason(2, 2)).isEqualTo("wire ended");
 });
 
 suite.test("cuts disable swaps that touch an ended wire", () => {
