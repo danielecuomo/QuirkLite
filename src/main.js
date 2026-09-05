@@ -82,7 +82,7 @@ const displayed = new ObservableValue(
 const mostRecentStats = new ObservableValue(CircuitStats.EMPTY);
 let revision = Revision.startingAt(displayed.get().snapshot());
 revision.latestActiveCommit().subscribe(jsonText => {
-    let circuitDef = fromJsonText_CircuitDefinition(jsonText);
+    let circuitDef = fromJsonText_CircuitDefinition(jsonText).withMinimumWireCount();
     let newInspector = displayed.get().withCircuitDefinition(circuitDef);
     displayed.set(newInspector);
 });
@@ -170,7 +170,7 @@ canvasDiv.addEventListener('mousedown', ev => {
     if (!isMiddleClicking(ev)) return;
     let cur = syncArea(displayed.get());
     let initOver = cur.tryGetHandOverButtonKey();
-    let newHand = cur.hand.withPos(eventPosRelativeTo(ev, canvas));
+    let newHand = cur.withHand(cur.hand.withPos(eventPosRelativeTo(ev, canvas))).hand;
     let newInspector;
     if (initOver !== undefined && initOver.startsWith('wire-init-')) {
         let newCircuit = cur.displayedCircuit.circuitDefinition.withSwitchedInitialStateOn(parseInt(initOver.substr(10)), 0);
