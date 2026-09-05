@@ -549,7 +549,7 @@ class CircuitDefinition {
     }
 
     /**
-     * @param {!int=0} extra
+     * @param {!int=} extra
      * @returns {!CircuitDefinition}
      */
     withTrailingSpacersIncluded(extra=0) {
@@ -683,6 +683,32 @@ class CircuitDefinition {
     }
 
     /**
+     * Checks whether a gate's physical footprint crosses a wire cut.
+     * A cut in the gate's starting column is not considered, because the cut
+     * takes effect after that column. Cuts in later columns are barriers.
+     * @param {!int} col
+     * @param {!int} row
+     * @param {!Gate} gate
+     * @returns {!boolean}
+     */
+    gateOverlapsWireCut(col, row, gate) {
+        if (gate === undefined || col < 0 || row < 0 || col >= this.columns.length) {
+            return false;
+        }
+        let maxCol = Math.min(this.columns.length, col + gate.width);
+        let maxRow = Math.min(this.numWires, row + gate.height);
+        for (let c = col; c < maxCol; c++) {
+            let cutMask = this.colIsWireCutMask(c);
+            for (let r = row; r < maxRow; r++) {
+                if ((cutMask & (1 << r)) !== 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * @param {!int} col
      * @returns {!int}
      */
@@ -803,20 +829,14 @@ class CircuitDefinition {
             return undefined;
         }
 
-        // Gates keep their top-left logical slot, while their visual footprint
-        // may skip rows which were removed by Wire Cut.
-        let activeRows = this.activeWireRowsAtColumn(col);
-        let activeIndex = activeRows.indexOf(row);
-        if (activeIndex < 0) {
-            return undefined;
-        }
-        for (let startIndex = 0; startIndex <= activeIndex; startIndex++) {
-            let startRow = activeRows[startIndex];
+        // Gate height always refers to physical rows. Wire cuts never compress
+        // the geometry of a multi-wire gate.
+        for (let startRow = row; startRow >= 0; startRow--) {
             let gate = this.columns[col].gates[startRow];
             if (gate === undefined || this.gateAtLocIsDisabledReason(col, startRow) !== undefined) {
                 continue;
             }
-            if (activeIndex < startIndex + gate.height) {
+            if (row < startRow + gate.height) {
                 return {col, row: startRow, gate};
             }
         }
@@ -981,7 +1001,12 @@ class CircuitDefinition {
         if (col < 0 || row < 0 || col >= this._colRowDisabledReason.length || row >= this.numWires) {
             return undefined;
         }
-        return this._colRowDisabledReason[col][row];
+        let reason = this._colRowDisabledReason[col][row];
+        if (reason !== undefined) {
+            return reason;
+        }
+        let gate = this.columns[col].gates[row];
+        return gate !== undefined && this.gateOverlapsWireCut(col, row, gate) ? "wire ended" : undefined;
     }
 
     /**
@@ -1100,13 +1125,11 @@ class CircuitDefinition {
      * @returns {!boolean}
      */
     isSlotRectCoveredByGateInSameColumn(col, row, height) {
-        let activeRows = this.activeWireRowsAtColumn(col);
-        let activeIndex = activeRows.indexOf(row);
-        if (activeIndex < 0) {
+        if (col < 0 || row < 0 || col >= this.columns.length || row >= this.numWires) {
             return false;
         }
-        for (let j = 0; j < height && activeIndex + j < activeRows.length; j++) {
-            let f = this.findGateCoveringSlot(col, activeRows[activeIndex + j]);
+        for (let r = row; r < Math.min(this.numWires, row + height); r++) {
+            let f = this.findGateCoveringSlot(col, r);
             if (f !== undefined && f.col === col) {
                 return true;
             }
