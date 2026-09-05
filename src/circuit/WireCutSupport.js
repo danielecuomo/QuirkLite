@@ -27,6 +27,21 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
     return result;
 };
 
+function gateCrossesLaterWireCut(circuit, col, row, gate) {
+    let maxCol = Math.min(circuit.columns.length, col + gate.width);
+    let maxRow = Math.min(circuit.numWires, row + gate.height);
+    for (let c = col + 1; c < maxCol; c++) {
+        for (let r = row; r < maxRow; r++) {
+            let cutGate = circuit.columns[c].gates[r];
+            if (cutGate !== undefined && cutGate.isWireCut &&
+                    circuit._colRowDisabledReason[c][r] === undefined) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 const originalGateAtLocIsDisabledReason = CircuitDefinition.prototype.gateAtLocIsDisabledReason;
 CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
     let reason = originalGateAtLocIsDisabledReason.call(this, col, row);
@@ -37,7 +52,11 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
 
     let activeRows = gate.height > 1 ? this.gateQubitRowsAtColumn(col, row, gate) : [];
     if (activeRows.length === gate.height) {
-        if (reason === "wire ended" && gate.width === 1) {
+        // A multi-qubit gate may skip qubits that were cut before this column.
+        // It must still be rejected if a cut occurs in a later column covered
+        // by the gate, because that would make the operation span a dead wire.
+        if (reason === "wire ended" && gate.height > 1 &&
+                !gateCrossesLaterWireCut(this, col, row, gate)) {
             return undefined;
         }
 
