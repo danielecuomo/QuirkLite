@@ -699,6 +699,18 @@ class CircuitDefinition {
         let maxRow = Math.min(this.numWires, row + gate.height);
         for (let c = col; c < maxCol; c++) {
             let cutMask = this.colIsWireCutMask(c);
+            // A cut in a later column is not included in that column's mask yet.
+            // Inspect the actual cut gate so a multi-column gate cannot cross it.
+            if (c > col) {
+                for (let r = row; r < maxRow; r++) {
+                    let cutGate = this.columns[c].gates[r];
+                    if (cutGate !== undefined &&
+                            cutGate.isWireCut &&
+                            this._colRowDisabledReason[c][r] === undefined) {
+                        cutMask |= 1 << r;
+                    }
+                }
+            }
             for (let r = row; r < maxRow; r++) {
                 if ((cutMask & (1 << r)) !== 0) {
                     return true;
