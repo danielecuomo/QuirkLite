@@ -24,6 +24,19 @@ import "./WireCutDisplaySupport.js"
  * The current state is stored *and updated* via the stateTrader field.
  */
 class CircuitEvalContext {
+    /**
+     * @param {!number} time
+     * @param {undefined|!int} qubitRow
+     * @param {!int} wireCount
+     * @param {!Controls} controls
+     * @param {!WglTexture} controlsTexture
+     * @param {!Controls} rawControls
+     * @param {!WglTextureTrader} stateTrader
+     * @param {!Map.<!string, *>} customContextFromGates
+     * @param {undefined|!CircuitDefinition} circuitDefinition
+     * @param {undefined|!int} col
+     * @param {undefined|!Array.<!int>} qubitRows
+     */
     constructor(time,
                 qubitRow,
                 wireCount,
@@ -45,9 +58,18 @@ class CircuitEvalContext {
         this.customContextFromGates = customContextFromGates;
         this.circuitDefinition = circuitDefinition;
         this.col = col;
+        if (qubitRows === undefined && circuitDefinition !== undefined && col !== undefined &&
+                circuitDefinition.gateQubitRowsAtColumn !== undefined) {
+            let gate = circuitDefinition.gateInSlot(col, qubitRow);
+            qubitRows = circuitDefinition.gateQubitRowsAtColumn(col, qubitRow, gate);
+        }
         this.qubitRows = qubitRows;
     }
 
+    /**
+     * @param {!WglConfiguredShader|!function(!CircuitEvalContext) : !WglConfiguredShader} operation
+     * @return {void}
+     */
     applyOperation(operation) {
         let configuredShader = operation instanceof WglConfiguredShader ? operation : operation(this);
         this.stateTrader.shadeAndTrade(configuredShader);
