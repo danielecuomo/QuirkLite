@@ -8,7 +8,7 @@
 import {Controls} from "./Controls.js"
 import {CircuitShaders} from "./CircuitShaders.js"
 import {rearrangeBits, rearrangeFloatBits} from "./WireCutShaders.js"
-import {AmplitudeDisplayFamily, amplitudeDisplayStatTextures} from "../gates/AmplitudeDisplay.js"
+import {AmplitudeDisplayFamily} from "../gates/AmplitudeDisplay.js"
 import {ProbabilityDisplayFamily, amplitudesToProbabilities} from "../gates/ProbabilityDisplay.js"
 import {Shaders} from "../webgl/Shaders.js"
 import {currentShaderCoder} from "../webgl/ShaderCoders.js"
