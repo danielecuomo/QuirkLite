@@ -48,7 +48,17 @@ jobs:
       - name: Make Amps display square
         shell: bash
         run: |
-          python3 -c "from pathlib import Path; p=Path('src/gates/AmplitudeDisplay.js'); s=p.read_text(); a=s.index('    let dw = args.rect.w - args.rect.h*ket.width()/ket.height();'); b=s.index('    let indicatorAlpha', a); s=s[:a]+'    let side = Math.min(args.rect.w, args.rect.h);\\n    let dx = (args.rect.w - side) / 2;\\n    let dy = (args.rect.h - side) / 2;\\n    let drawRect = args.rect.skipLeft(dx).skipRight(dx).skipTop(dy).skipBottom(dy);\\n'+s[b:]; p.write_text(s)"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/gates/AmplitudeDisplay.js')
+          s = p.read_text()
+          old = '    let dw = args.rect.w - args.rect.h * ket.width() / ket.height();\n    let drawRect = args.rect.skipLeft(dw/2).skipRight(dw/2);\n'
+          new = '    let side = Math.min(args.rect.w, args.rect.h);\n    let dx = (args.rect.w - side) / 2;\n    let dy = (args.rect.h - side) / 2;\n    let drawRect = args.rect.skipLeft(dx).skipRight(dx).skipTop(dy).skipBottom(dy);\n'
+          if old not in s:
+              raise SystemExit('Expected original Amps draw rectangle not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
 
       - name: Build QuirkLite
         run: npm run build
