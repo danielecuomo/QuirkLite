@@ -41,6 +41,23 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
     return result;
 };
 
+const originalFindGateCoveringSlot = CircuitDefinition.prototype.findGateCoveringSlot;
+CircuitDefinition.prototype.findGateCoveringSlot = function(col, row) {
+    if (col < 0 || row < 0 || col >= this.columns.length || row >= this.numWires) {
+        return undefined;
+    }
+    for (let startRow = 0; startRow < this.numWires; startRow++) {
+        let gate = this.columns[col].gates[startRow];
+        if (gate === undefined || this.gateAtLocIsDisabledReason(col, startRow) !== undefined) {
+            continue;
+        }
+        if (this.gateQubitRowsAtColumn(col, startRow, gate).indexOf(row) >= 0) {
+            return {col, row: startRow, gate};
+        }
+    }
+    return originalFindGateCoveringSlot.call(this, col, row);
+};
+
 const originalMinimumRequiredWireCount = CircuitDefinition.prototype.minimumRequiredWireCount;
 CircuitDefinition.prototype.minimumRequiredWireCount = function() {
     let result = originalMinimumRequiredWireCount.call(this);
