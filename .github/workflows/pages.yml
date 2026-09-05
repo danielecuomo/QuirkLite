@@ -45,6 +45,21 @@ jobs:
           p.write_text(s)
           PY
 
+      - name: Fix Safari Rect name collision
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/gates/AmplitudeDisplay.js')
+          s = p.read_text()
+          old = '''    let drawRect = new Rect(\n        args.rect.center().x - drawWidth / 2,\n        args.rect.center().y - drawHeight / 2,\n        drawWidth,\n        drawHeight);'''
+          new = '''    let drawRect = args.rect.\n        withW(drawWidth).\n        withH(drawHeight).\n        shiftedBy((args.rect.w - drawWidth) / 2, (args.rect.h - drawHeight) / 2);'''
+          if old not in s:
+              raise SystemExit('Expected Amps draw rectangle block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
       - name: Build QuirkLite
         run: npm run build
 
