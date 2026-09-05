@@ -32,6 +32,9 @@ class CircuitEvalContext {
      *     can use this information (even though they are not themselves controlled).
      * @param {!WglTextureTrader} stateTrader
      * @param {!Map.<!string, *>} customContextFromGates
+     * @param {undefined|!CircuitDefinition} circuitDefinition
+     * @param {undefined|!int} col
+     * @param {undefined|!Array.<!int>} qubitRows Physical state-vector rows occupied by the logical qubits of the operation.
      */
     constructor(time,
                 qubitRow,
@@ -42,7 +45,8 @@ class CircuitEvalContext {
                 stateTrader,
                 customContextFromGates,
                 circuitDefinition=undefined,
-                col=undefined) {
+                col=undefined,
+                qubitRows=undefined) {
         /** @type {!number} */
         this.time = time;
         /**
@@ -66,6 +70,8 @@ class CircuitEvalContext {
         this.circuitDefinition = circuitDefinition;
         /** @type {undefined|!int} */
         this.col = col;
+        /** @type {undefined|!Array.<!int>} */
+        this.qubitRows = qubitRows;
     }
 
     /**
@@ -92,7 +98,8 @@ class CircuitEvalContext {
             this.stateTrader,
             this.customContextFromGates,
             this.circuitDefinition,
-            this.col);
+            this.col,
+            this.qubitRows);
     }
 
     /**
@@ -102,6 +109,16 @@ class CircuitEvalContext {
     withRow(row) {
         let r = this._clone();
         r.row = row;
+        return r;
+    }
+
+    /**
+     * @param {!Array.<!int>} qubitRows
+     * @returns {!CircuitEvalContext}
+     */
+    withQubitRows(qubitRows) {
+        let r = this._clone();
+        r.qubitRows = qubitRows;
         return r;
     }
 
