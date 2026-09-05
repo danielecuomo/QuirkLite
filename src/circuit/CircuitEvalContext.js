@@ -16,6 +16,7 @@
 
 import {WglConfiguredShader} from "../webgl/WglConfiguredShader.js"
 import "./WireCutSupport.js"
+import "./WireCutDisplaySupport.js"
 
 /**
  * Values used by the various gate effects.
@@ -23,20 +24,6 @@ import "./WireCutSupport.js"
  * The current state is stored *and updated* via the stateTrader field.
  */
 class CircuitEvalContext {
-    /**
-     * @param {!number} time
-     * @param {undefined|!int} qubitRow
-     * @param {!int} wireCount
-     * @param {!Controls} controls
-     * @param {!WglTexture} controlsTexture
-     * @param {!Controls} rawControls The controls of the gate column, made available so that before/after operations
-     *     can use this information (even though they are not themselves controlled).
-     * @param {!WglTextureTrader} stateTrader
-     * @param {!Map.<!string, *>} customContextFromGates
-     * @param {undefined|!CircuitDefinition} circuitDefinition
-     * @param {undefined|!int} col
-     * @param {undefined|!Array.<!int>} qubitRows Physical state-vector rows occupied by the logical qubits of the operation.
-     */
     constructor(time,
                 qubitRow,
                 wireCount,
@@ -48,46 +35,24 @@ class CircuitEvalContext {
                 circuitDefinition=undefined,
                 col=undefined,
                 qubitRows=undefined) {
-        /** @type {!number} */
         this.time = time;
-        /**
-         * The top-level row that we're working relative to.
-         * @type {undefined|!int}
-         */
         this.row = qubitRow;
-        /** @type {!int} */
         this.wireCount = wireCount;
-        /** @type {!Controls} */
         this.controls = controls;
-        /** @type {!Controls} */
         this.rawControls = rawControls;
-        /** @type {!WglTexture} */
         this.controlsTexture = controlsTexture;
-        /** @type {!WglTextureTrader} */
         this.stateTrader = stateTrader;
-        /** @type {!Map.<!string, *>} */
         this.customContextFromGates = customContextFromGates;
-        /** @type {undefined|!CircuitDefinition} */
         this.circuitDefinition = circuitDefinition;
-        /** @type {undefined|!int} */
         this.col = col;
-        /** @type {undefined|!Array.<!int>} */
         this.qubitRows = qubitRows;
     }
 
-    /**
-     * @param {!WglConfiguredShader|!function(!CircuitEvalContext) : !WglConfiguredShader} operation
-     * @return {void}
-     */
     applyOperation(operation) {
         let configuredShader = operation instanceof WglConfiguredShader ? operation : operation(this);
         this.stateTrader.shadeAndTrade(configuredShader);
     }
 
-    /**
-     * @returns {!CircuitEvalContext}
-     * @private
-     */
     _clone() {
         return new CircuitEvalContext(
             this.time,
@@ -103,32 +68,18 @@ class CircuitEvalContext {
             this.qubitRows);
     }
 
-    /**
-     * @param {!int} row
-     * @returns {!CircuitEvalContext}
-     */
     withRow(row) {
         let r = this._clone();
         r.row = row;
         return r;
     }
 
-    /**
-     * @param {!Array.<!int>} qubitRows
-     * @returns {!CircuitEvalContext}
-     */
     withQubitRows(qubitRows) {
         let r = this._clone();
         r.qubitRows = qubitRows;
         return r;
     }
 
-    /**
-     * @param {!string} letter
-     * @param {!int} offset
-     * @param {!int} length
-     * @returns {!CircuitEvalContext}
-     */
     withInputSetToRange(letter, offset, length) {
         let r = this._clone();
         r.customContextFromGates = new Map(r.customContextFromGates);
@@ -136,11 +87,6 @@ class CircuitEvalContext {
         return r;
     }
 
-    /**
-     * @param {!string} letter
-     * @param {!int} value
-     * @returns {!CircuitEvalContext}
-     */
     withInputSetToConstant(letter, value) {
         let r = this._clone();
         r.customContextFromGates = new Map(r.customContextFromGates);
@@ -149,16 +95,9 @@ class CircuitEvalContext {
         return r;
     }
 
-    /**
-     * @param {!string} letter
-     * @param {!string} other
-     * @returns {!CircuitEvalContext}
-     */
     withInputSetToOtherInput(letter, other) {
         let r = this._clone();
-
         r.customContextFromGates = new Map(r.customContextFromGates);
-
         for (let key of ['Range', 'Default']) {
             let otherVal = r.customContextFromGates.get(`Input ${key} ${other}`);
             if (otherVal !== undefined) {
@@ -167,7 +106,6 @@ class CircuitEvalContext {
                 r.customContextFromGates.delete(`Input ${key} ${letter}`);
             }
         }
-
         return r;
     }
 }
