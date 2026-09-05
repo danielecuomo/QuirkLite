@@ -83,10 +83,7 @@ function gateHasLogicalRowOverlap(circuit, col, row, gate) {
         return false;
     }
     let usedRows = new Set(rows);
-    for (let otherRow = 0; otherRow < circuit.numWires; otherRow++) {
-        if (otherRow === row) {
-            continue;
-        }
+    for (let otherRow = 0; otherRow < row; otherRow++) {
         let otherGate = circuit.columns[col].gates[otherRow];
         if (otherGate === undefined || otherGate.isWireCut || otherGate.isControl()) {
             continue;
