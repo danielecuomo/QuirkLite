@@ -29,7 +29,6 @@ import {makePseudoShaderWithInputsAndOutputAndCode, Inputs, Outputs} from "../we
  *                      k is also a relativized state.
  * - float full_out_id: The non-relativized state id. Useful if you want to use the value of other qubits as an
  *                      input (which e.g. the arithmetic gates do).
- * - vec2 cmul(vec2 a, vec2 b): returns the product of two complex numbers represented as a vec2.
  * - vec2 amp: The input amplitude of the output state being computed. This value had to be retrieved for the case where
  *             controls aren't satisfied, and as a convenience/optimization-opportunity it's handed to your code.
  * - float span [if you gave an undefined span]: Two to the power of the gate height.
@@ -50,13 +49,53 @@ const ketShader = (head, body, span=null, inputs=[]) => ({withArgs: makePseudoSh
     ],
     Outputs.vec2(),
     `
-    uniform float _ketgen_step;
+    uniform float _ketgen_bits;
     ${span === null ? 'uniform float span;' : ''}
     float _ketgen_off;
     float full_out_id;
 
+    float _ketgen_relevant_out_id(float state) {
+        float result = 0.0;
+        float physicalBit = 1.0;
+        float logicalBit = 1.0;
+        for (int i = 0; i < ${Config.MAX_WIRE_COUNT}; i++) {
+            float selected = mod(floor(_ketgen_bits / physicalBit), 2.0);
+            result += selected * mod(floor(state / physicalBit), 2.0) * logicalBit;
+            logicalBit *= 1.0 + selected;
+            physicalBit *= 2.0;
+        }
+        return result;
+    }
+
+    float _ketgen_clear_selected_bits(float state) {
+        float result = state;
+        float physicalBit = 1.0;
+        for (int i = 0; i < ${Config.MAX_WIRE_COUNT}; i++) {
+            float selected = mod(floor(_ketgen_bits / physicalBit), 2.0);
+            result -= selected * mod(floor(result / physicalBit), 2.0) * physicalBit;
+            physicalBit *= 2.0;
+        }
+        return result;
+    }
+
+    float _ketgen_scatter_selected_bits(float k, float base) {
+        float result = base;
+        float physicalBit = 1.0;
+        float logicalBit = 1.0;
+        for (int i = 0; i < ${Config.MAX_WIRE_COUNT}; i++) {
+            float selected = mod(floor(_ketgen_bits / physicalBit), 2.0);
+            result += selected * mod(floor(k / logicalBit), 2.0) * physicalBit;
+            logicalBit *= 1.0 + selected;
+            physicalBit *= 2.0;
+        }
+        return result;
+    }
+
+    vec2 inp(float k) {
+        return read_ketgen_ket(_ketgen_scatter_selected_bits(k, _ketgen_off));
+    }
+
     ${body.match(/\bcmul\b/) ? 'vec2 cmul(vec2 c1, vec2 c2) { return mat2(c1.x, c1.y, -c1.y, c1.x) * c2; }' : ''}
-    ${body.match(/\binp\b/) ? 'vec2 inp(float k) { return read_ketgen_ket(_ketgen_off + _ketgen_step*k); }' : ''}
 
     ${head}
 
@@ -67,8 +106,8 @@ const ketShader = (head, body, span=null, inputs=[]) => ({withArgs: makePseudoSh
     vec2 outputFor(float k) {
         full_out_id = k;
 
-        float relevant_out_id = mod(floor(full_out_id / _ketgen_step), ${span === null ? 'span' : (1<<span)+'.0'});
-        _ketgen_off = full_out_id - relevant_out_id*_ketgen_step;
+        float relevant_out_id = _ketgen_relevant_out_id(full_out_id);
+        _ketgen_off = _ketgen_clear_selected_bits(full_out_id);
 
         float c = read_ketgen_control(full_out_id);
         vec2 vc = read_ketgen_ket(full_out_id);
@@ -88,7 +127,7 @@ const ketShaderPermute = (head, body, span=null) => ketShader(
     span);
 
 /**
- * Returns a shader that multiplies each of the amplitudes in a superposition by computed phase factors.
+ * Returns a configured shader that multiplies each of the amplitudes in a superposition by computed phase factors.
  *
  * @param {!String} head Header code defining shader methods, uniforms, etc.
  * @param {!String} body The body of a shader method returning the number of radians to phase by.
@@ -116,10 +155,26 @@ const ketShaderPhase = (head, body, span=null) => ketShader(
  * @returns {!Array.<!WglArg>}
  */
 function ketArgs(ctx, span=undefined, input_letters=[]) {
+    let qubitRows = ctx.qubitRows;
+    if (qubitRows === undefined) {
+        let count = span === undefined ? 1 : span;
+        qubitRows = [];
+        for (let i = 0; i < count; i++) {
+            qubitRows.push(ctx.row + i);
+        }
+    }
+
+    let bits = 0;
+    for (let row of qubitRows) {
+        if (row >= 0 && row < Config.MAX_WIRE_COUNT) {
+            bits |= 1 << row;
+        }
+    }
+
     let result = [
         ctx.stateTrader.currentTexture,
         ctx.controlsTexture,
-        WglArg.float("_ketgen_step", 1 << ctx.row)
+        WglArg.float("_ketgen_bits", bits)
     ];
     if (span !== undefined) {
         result.push(WglArg.float('span', 1 << span));
