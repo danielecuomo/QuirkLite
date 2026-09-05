@@ -98,5 +98,3 @@ suite.test("a cut crossed by a multi-column gate invalidates the gate", () => {
     assertThat(c.findGateCoveringSlot(0, 0)).isEqualTo(undefined);
     assertThat(c.gateAtLocIsDisabledReason(2, 1)).isEqualTo(undefined);
 });
-
-export {suite}
