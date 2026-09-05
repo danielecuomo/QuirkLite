@@ -7,7 +7,7 @@
 
 import {Config} from "../Config.js"
 import {WglArg} from "../webgl/WglArg.js"
-import {Inputs, Outputs, makePseudoShaderWithInputsAndOutputAndCode} from "../webgl/ShaderCoders.js"
+import {Inputs, Outputs, currentShaderCoder, makePseudoShaderWithInputsAndOutputAndCode} from "../webgl/ShaderCoders.js"
 
 /**
  * Reorders the bits of a state vector so the selected physical rows become
@@ -24,13 +24,7 @@ function rearrangeBits(inputTexture, selectedMask, shift=0) {
         inputTexture,
         WglArg.float("selectedMask", selectedMask),
         WglArg.float("shift", shift),
-        WglArg.float("wireCount", 1 << currentSizePower(inputTexture)));
-}
-
-function currentSizePower(inputTexture) {
-    // This is only used to bound the cyclic shift. The shader itself derives
-    // the actual state-space size from the number of texture pixels.
-    return inputTexture.arrayPowerSize();
+        WglArg.float("wireCount", 1 << currentShaderCoder().vec2.arrayPowerSizeOfTexture(inputTexture)));
 }
 
 const REARRANGE_BITS_SHADER = makePseudoShaderWithInputsAndOutputAndCode(
@@ -41,7 +35,7 @@ const REARRANGE_BITS_SHADER = makePseudoShaderWithInputsAndOutputAndCode(
     uniform float shift;
     uniform float wireCount;
 
-    float outputFor(float k) {
+    vec2 outputFor(float k) {
         float result = 0.0;
         float physicalBit = 1.0;
         float selectedRank = 0.0;
