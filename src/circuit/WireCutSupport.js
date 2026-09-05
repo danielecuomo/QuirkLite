@@ -24,6 +24,32 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
             break;
         }
     }
+
+    // A gate may need to skip a cut wire and continue onto a new wire below
+    // the current circuit. Such a wire is implicitly initialized to |0>, just
+    // like the extra wire created when a gate is placed at the bottom.
+    let physicalRow = this.numWires;
+    while (result.length < gate.height) {
+        result.push(physicalRow++);
+    }
+    return result;
+};
+
+const originalMinimumRequiredWireCount = CircuitDefinition.prototype.minimumRequiredWireCount;
+CircuitDefinition.prototype.minimumRequiredWireCount = function() {
+    let result = originalMinimumRequiredWireCount.call(this);
+    for (let col = 0; col < this.columns.length; col++) {
+        for (let row = 0; row < this.numWires; row++) {
+            let gate = this.columns[col].gates[row];
+            if (gate === undefined || gate.height <= 1) {
+                continue;
+            }
+            let rows = this.gateQubitRowsAtColumn(col, row, gate);
+            for (let physicalRow of rows) {
+                result = Math.max(result, physicalRow + 1);
+            }
+        }
+    }
     return result;
 };
 
@@ -63,7 +89,9 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
         if (reason === "no\nremix\n(sorry)" && gate.width === 1) {
             let activeMask = 0;
             for (let r of activeRows) {
-                activeMask |= 1 << r;
+                if (r < this.numWires) {
+                    activeMask |= 1 << r;
+                }
             }
             let recomputed = new GateColumn(this.columns[col].gates).
                 _disabledReason_remixing(row, this.colIsMeasuredMask(col) & activeMask);
@@ -74,7 +102,7 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
 
         if (reason === "control\ninside" && gate.width === 1) {
             for (let i = 1; i < activeRows.length; i++) {
-                let otherGate = this.columns[col].gates[activeRows[i]];
+                let otherGate = activeRows[i] < this.numWires ? this.columns[col].gates[activeRows[i]] : undefined;
                 if (otherGate !== undefined && otherGate.isControl()) {
                     return reason;
                 }
@@ -85,7 +113,9 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
         if (reason === "already\nmeasured" && gate === Gates.Special.BellMeasurement) {
             let measured = 0;
             for (let r of activeRows) {
-                measured |= this.colIsMeasuredMask(col) & (1 << r);
+                if (r < this.numWires) {
+                    measured |= this.colIsMeasuredMask(col) & (1 << r);
+                }
             }
             if (measured === 0) {
                 return undefined;
