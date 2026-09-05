@@ -9,6 +9,21 @@ import {CircuitDefinition} from "./CircuitDefinition.js"
 import {GateColumn} from "./GateColumn.js"
 import {Gates} from "../gates/AllGates.js"
 
+const originalActiveWireRowsAtColumn = CircuitDefinition.prototype.activeWireRowsAtColumn;
+CircuitDefinition.prototype.activeWireRowsAtColumn = function(col) {
+    let result = originalActiveWireRowsAtColumn.call(this, col);
+
+    // Once all existing wires below a cut have ended, a subsequent multi-wire
+    // gate can continue on newly created wires at the bottom of the circuit.
+    // Treat those implicit wires as the next logical live rows. This keeps the
+    // simulator and the gate geometry on the same row mapping.
+    let physicalRow = this.numWires;
+    while (result.length < this.numWires) {
+        result.push(physicalRow++);
+    }
+    return result;
+};
+
 CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
     if (gate === undefined || col < 0 || col >= this.columns.length || row < 0 || row >= this.numWires) {
         return [];
@@ -28,13 +43,6 @@ CircuitDefinition.prototype.gateQubitRowsAtColumn = function(col, row, gate) {
         }
     }
 
-    // A gate may need to skip a cut wire and continue onto a new wire below
-    // the current circuit. Such a wire is implicitly initialized to |0>, just
-    // like the extra wire created when a gate is placed at the bottom.
-    let physicalRow = this.numWires;
-    while (result.length < gate.height) {
-        result.push(physicalRow++);
-    }
     return result;
 };
 
