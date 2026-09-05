@@ -5,7 +5,6 @@
  * you may not use this file except in compliance with the License.
  */
 
-import {Config} from "../Config.js"
 import {CircuitDefinition} from "./CircuitDefinition.js"
 
 /**
@@ -48,7 +47,6 @@ CircuitDefinition.prototype.gateAtLocIsDisabledReason = function(col, row) {
     return this.gateQubitRowsAtColumn(col, row, gate).length === gate.height ? undefined : reason;
 };
 
-const originalApplyOpsInCol = CircuitDefinition.prototype._applyOpsInCol;
 CircuitDefinition.prototype._applyOpsInCol = function(colIndex, ctx, opGetter) {
     if (colIndex < 0 || colIndex >= this.columns.length) {
         return;
@@ -71,7 +69,3 @@ CircuitDefinition.prototype._applyOpsInCol = function(colIndex, ctx, opGetter) {
         }
     }
 };
-
-// Keep this module loaded even when a future compiler removes apparently unused
-// imports from generated code.
-void Config;
