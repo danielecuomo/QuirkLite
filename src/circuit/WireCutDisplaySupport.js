@@ -7,13 +7,9 @@
 
 import {Controls} from "./Controls.js"
 import {CircuitShaders} from "./CircuitShaders.js"
-import {rearrangeBits, rearrangeFloatBits} from "./WireCutShaders.js"
+import {rearrangeBits} from "./WireCutShaders.js"
 import {AmplitudeDisplayFamily} from "../gates/AmplitudeDisplay.js"
-import {ProbabilityDisplayFamily, amplitudesToProbabilities} from "../gates/ProbabilityDisplay.js"
-import {Shaders} from "../webgl/Shaders.js"
-import {currentShaderCoder} from "../webgl/ShaderCoders.js"
-import {WglTexturePool} from "../webgl/WglTexturePool.js"
-import {WglTextureTrader} from "../webgl/WglTextureTrader.js"
+import {ProbabilityDisplayFamily} from "../gates/ProbabilityDisplay.js"
 
 function logicalQubitRows(ctx, gate) {
     if (ctx.qubitRows !== undefined) {
@@ -76,7 +72,7 @@ function noCutCircuitDefinition(circuitDefinition) {
     return result;
 }
 
-function wrapAmplitudeGate(gate) {
+function wrapDisplayGate(gate) {
     if (gate === undefined || gate.customStatTexturesMaker === undefined || gate.__wireCutDisplayPatched) {
         return;
     }
@@ -88,78 +84,48 @@ function wrapAmplitudeGate(gate) {
                 !rowsNeedRemapping(rows, ctx.row)) {
             return originalMaker(ctx);
         }
-        let sizePower = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ctx.stateTrader.currentTexture);
+
+        let sizePower = 0;
+        if (ctx.stateTrader.currentTexture !== undefined) {
+            // Both amplitude and probability display makers consume the full
+            // state vector. Keep its Hilbert-space size unchanged while
+            // permuting the selected physical qubits into a contiguous block.
+            sizePower = ctx.stateTrader.currentTexture._sizePower;
+        }
+        if (!Number.isInteger(sizePower)) {
+            // Fall back to the shader coder without importing the probability
+            // implementation just for this query.
+            sizePower = ctx.wireCount;
+        }
+
         let selectedMask = 0;
         for (let row of rows) {
             selectedMask |= 1 << row;
         }
+
         let remappedState = rearrangeBits(
             ctx.stateTrader.currentTexture,
             selectedMask,
-            ctx.row).toVec2Texture(sizePower);
+            ctx.row);
         let remappedControls = remapControls(
             ctx.controls,
             rows,
             ctx.row,
             sizePower);
         let remappedControlTexture = CircuitShaders.controlMask(remappedControls).toBoolTexture(sizePower);
+
         let remappedCtx = ctx._clone();
         remappedCtx.stateTrader = {currentTexture: remappedState};
         remappedCtx.controls = remappedControls;
         remappedCtx.controlsTexture = remappedControlTexture;
+        remappedCtx.circuitDefinition = noCutCircuitDefinition(ctx.circuitDefinition);
         remappedCtx.qubitRows = undefined;
         try {
             return originalMaker(remappedCtx);
         } finally {
-            remappedState.deallocByDepositingInPool("wire cut amplitude display remap");
-            remappedControlTexture.deallocByDepositingInPool("wire cut amplitude control remap");
+            remappedState.deallocByDepositingInPool("wire cut display remap");
+            remappedControlTexture.deallocByDepositingInPool("wire cut display control remap");
         }
-    };
-    if (originalPost !== undefined) {
-        gate.customStatPostProcesser = (pixels, circuit, col, row) =>
-            originalPost(pixels, noCutCircuitDefinition(circuit), col, row);
-    }
-    gate.__wireCutDisplayPatched = true;
-}
-
-function wireCutProbabilityStatTexture(ctx, gate, selectedMask) {
-    let sizePower = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ctx.stateTrader.currentTexture);
-    let trader = new WglTextureTrader(ctx.stateTrader.currentTexture);
-    trader.dontDeallocCurrentTexture();
-    trader.shadeAndTrade(
-        tex => amplitudesToProbabilities(tex, ctx.controlsTexture),
-        WglTexturePool.takeVecFloatTex(sizePower));
-    trader.shadeAndTrade(
-        tex => rearrangeFloatBits(tex, selectedMask, 0),
-        WglTexturePool.takeVecFloatTex(sizePower));
-    for (let k = gate.height; k < sizePower; k++) {
-        trader.shadeHalveAndTrade(Shaders.sumFoldFloat);
-    }
-    if (currentShaderCoder().float.needRearrangingToBeInVec4Format) {
-        trader.shadeQuarterAndTrade(Shaders.packFloatIntoVec4);
-    }
-    return trader.currentTexture;
-}
-
-function wrapProbabilityGate(gate) {
-    if (gate === undefined || gate.customStatTexturesMaker === undefined || gate.__wireCutDisplayPatched) {
-        return;
-    }
-    let originalMaker = gate.customStatTexturesMaker;
-    let originalPost = gate.customStatPostProcesser;
-    gate.customStatTexturesMaker = ctx => {
-        let rows = logicalQubitRows(ctx, gate);
-        if (rows.length !== gate.height || ctx.circuitDefinition === undefined) {
-            return originalMaker(ctx);
-        }
-        if (!rowsNeedRemapping(rows, ctx.row)) {
-            return originalMaker(ctx);
-        }
-        let selectedMask = 0;
-        for (let row of rows) {
-            selectedMask |= 1 << row;
-        }
-        return wireCutProbabilityStatTexture(ctx, gate, selectedMask);
     };
     if (originalPost !== undefined) {
         gate.customStatPostProcesser = (pixels, circuit, col, row) =>
@@ -170,11 +136,11 @@ function wrapProbabilityGate(gate) {
 
 for (let gate of AmplitudeDisplayFamily.all) {
     if (gate !== undefined && gate.height > 1) {
-        wrapAmplitudeGate(gate);
+        wrapDisplayGate(gate);
     }
 }
 for (let gate of ProbabilityDisplayFamily.all) {
     if (gate !== undefined && gate.height > 1) {
-        wrapProbabilityGate(gate);
+        wrapDisplayGate(gate);
     }
 }
