@@ -22,7 +22,7 @@ function parseTimeFormula(formula, time, warn) {
     try {
         let angle = Complex.from(parseFormula(formula, tokenMap));
         if (Math.abs(angle.imag) > 0.0001) {
-            throw new Error(`Non-real angle: ${formula} = ${Complex.from(parseFormula(formula, tokenMap))}`);
+            throw new Error(`Non-real angle: ${formula} = ${angle}`);
         }
         return angle.real;
     } catch (ex) {
@@ -95,24 +95,19 @@ const makeIsingGate = (axis, pauli) => {
         setTitle(`Formula Ising ${axis}${axis} Gate`).
         setBlurb(`Applies exp(-i f(t) ${axis}⊗${axis}).`).
         setDrawer(formulaicIsingDrawer(`${axis}${axis}_f(t)`)).
-        setWidth(2).
+        setWidth(1).
         setExtraDisableReasonFinder(badFormulaDetector).
         setOnClickGateFunc(angleClicker(`Ising ${axis}${axis} gate's angle in radians`)).
         setEffectToTimeVaryingMatrix((t, formula) => matrixForAngle(
             parseTimeFormula(formula, t*2-1, true) || 0)).
         setWithParamPropertyRecomputeFunc(gate => {
-            if (typeof gate.param === 'string') {
-                gate.width = Math.ceil((gate.param.length + 1) / 5);
-                gate.alternate = gate._copy();
-                gate.alternate.alternate = gate;
-                if (gate.param.startsWith('-(') && gate.param.endsWith(')')) {
-                    gate.alternate.param = gate.param.substring(2, gate.param.length - 1);
-                } else {
-                    gate.alternate.param = '-(' + gate.param + ')';
-                }
-            } else {
-                gate.width = 1;
-                gate.alternate = gate;
+            gate.width = 1;
+            gate.alternate = gate._copy();
+            gate.alternate.alternate = gate;
+            if (typeof gate.param === 'string' && gate.param.startsWith('-(') && gate.param.endsWith(')')) {
+                gate.alternate.param = gate.param.substring(2, gate.param.length - 1);
+            } else if (typeof gate.param === 'string') {
+                gate.alternate.param = '-(' + gate.param + ')';
             }
         }).
         promiseEffectIsUnitary().
