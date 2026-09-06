@@ -23,11 +23,13 @@ function initMenu(revision, obsIsAnyOverlayShowing) {
     const nonLocalityAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-non-locality');
     nonLocalityAnchor.href = '#circuit={%22cols%22:[[1,%22IsingXX%22],[1,%22Chance2%22],[%22%3C%3C2%22,1,%22%3E%3E2%22],[1,%22WireCut%22,%22WireCut%22],[%22Chance2%22]]}';
 
+    const ghzBreak = document.createElement('br');
     const ghzAnchor = /** @type {!HTMLAnchorElement} */ nonLocalityAnchor.cloneNode(true);
     ghzAnchor.id = 'example-anchor-ghz';
     ghzAnchor.href = '#circuit={%22cols%22:[[%22IsingXXX%22],[%22Chance3%22]]}';
     ghzAnchor.textContent = 'GHZ';
-    nonLocalityAnchor.parentNode.insertBefore(ghzAnchor, nonLocalityAnchor.nextSibling);
+    nonLocalityAnchor.parentNode.insertBefore(ghzBreak, nonLocalityAnchor.nextSibling);
+    nonLocalityAnchor.parentNode.insertBefore(ghzAnchor, ghzBreak.nextSibling);
 }
 
 export {initMenu, obsMenuIsShowing, closeMenu}
