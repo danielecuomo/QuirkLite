@@ -17,6 +17,7 @@
 import {CachablePainting} from "../draw/CachablePainting.js"
 import {CircuitStats} from "../circuit/CircuitStats.js"
 import {Config} from "../Config.js"
+import {DisplayedCircuit} from "../ui/DisplayedCircuit.js"
 import {GateDrawParams} from "../draw/GateDrawParams.js"
 import {GatePainting} from "../draw/GatePainting.js"
 import {Hand} from "../ui/Hand.js"
@@ -64,7 +65,10 @@ class DisplayedToolbox {
         this.labelsOnTop = labelsOnTop;
         /** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
         this._originalGroups = originalGroups || this.toolboxGroups;
-        /** @type {!CachablePainting} */
+        /**
+         * @type {!CachablePainting}
+         * @private
+         */
         this._standardApperance = standardAppearance || new CachablePainting(
             () => ({width: this.desiredWidth(), height: this.desiredHeight()}),
             painter => {
@@ -194,20 +198,32 @@ class DisplayedToolbox {
 
     _paintStandardContents(painter) {
         for (let groupIndex = 0; groupIndex < this.toolboxGroups.length; groupIndex++) {
-            let group = this.toolboxGroups[groupIndex];
-            let color = DisplayedToolbox.toolboxColorForGroup(group);
-            if (this.labelsOnTop) {
-                let r = this.groupLabelRect(groupIndex);
-                painter.print(group.hint, r.center().x, r.center().y, 'center', 'middle', 'black', '14px sans-serif', r.w);
+            this._paintGatesInGroup(painter, Hand.EMPTY, groupIndex);
+        }
+    }
+
+    _paintGatesInGroup(painter, hand, groupIndex) {
+        let group = this.toolboxGroups[groupIndex];
+        let r = this.groupLabelRect(groupIndex);
+        painter.print(
+            group.hint,
+            r.x + r.w/2,
+            r.y + r.h/2,
+            'center',
+            'middle',
+            'black',
+            '16px sans-serif',
+            r.w,
+            r.h);
+
+        let color = DisplayedToolbox.toolboxColorForGroup(group);
+        for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
+            let gate = group.gates[gateIndex];
+            if (gate === undefined) {
+                continue;
             }
-            for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
-                let gate = group.gates[gateIndex];
-                if (gate === undefined) {
-                    continue;
-                }
-                let r = this.gateDrawRect(groupIndex, gateIndex);
-                DisplayedToolbox._paintGate(painter, Hand.EMPTY, gate, r, false, CircuitStats.EMPTY, color);
-            }
+            let rect = this.gateDrawRect(groupIndex, gateIndex);
+            DisplayedToolbox._paintGate(painter, hand, gate, rect, false, CircuitStats.EMPTY, color);
         }
     }
 
@@ -232,31 +248,51 @@ class DisplayedToolbox {
     }
 
     paint(painter, stats, hand) {
-        this._paintStandardContents(painter);
+        painter.fillRect(this.gateDrawRect(0, 0).inflate(Config.TOOLBOX_MARGIN_X), Config.BACKGROUND_COLOR_TOOLBOX);
+        this._standardApperance.paint(0, this.top, painter);
+        this._paintDeviations(painter, stats, hand);
+    }
 
-        if (hand.heldGate !== undefined) {
-            let r = this.gateDrawRect(hand.grabbedGateGroupIndex, hand.grabbedGateIndex);
-            DisplayedToolbox._paintGate(
-                painter,
-                hand,
-                hand.heldGate,
-                r,
-                true,
-                stats,
-                Config.GATE_FILL_COLOR);
+    _paintDeviations(painter, stats, hand) {
+        for (let groupIndex = 0; groupIndex < this.toolboxGroups.length; groupIndex++) {
+            if (groupIndex >= this._originalGroups.length) {
+                this._paintGatesInGroup(painter, hand, groupIndex);
+            }
+
+            let group = this.toolboxGroups[groupIndex];
+            for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
+                if (group.gates[gateIndex] !== undefined) {
+                    painter.noteTouchBlocker({
+                        rect: this.gateDrawRect(groupIndex, gateIndex),
+                        cursor: 'pointer'}
+                    );
+                }
+            }
         }
 
-        if (hand.hoveringGate !== undefined) {
-            let r = this.gateDrawRect(hand.hoveringGateGroupIndex, hand.hoveringGateIndex);
-            DisplayedToolbox._paintGate(
-                painter,
-                hand,
-                hand.hoveringGate,
-                r,
-                true,
-                stats,
-                Config.GATE_FILL_COLOR);
+        this._paintFocus(painter, stats, hand);
+    }
+
+    _paintFocus(painter, stats, hand) {
+        let f = this.findGateAt(hand.pos);
+        if (f === undefined || (hand.heldGate !== undefined && f.gate.symbol !== hand.heldGate.symbol)) {
+            return;
         }
+
+        DisplayedToolbox._paintGate(painter, hand, f.gate, f.rect, true, stats, Config.GATE_FILL_COLOR);
+
+        painter.ctx.save();
+        painter.ctx.globalAlpha = 0;
+        painter.ctx.translate(-10000, -10000);
+        let {maxW, maxH} = WidgetPainter.paintGateTooltip(
+            painter, new Rect(0, 0, 500, 300), f.gate, stats.time, true);
+        let mayNeedToScale = maxW >= 500 || maxH >= 300;
+        painter.ctx.restore();
+
+        let cx = f.rect.right() + 1;
+        let hintRect = new Rect(cx, f.rect.center().y, maxW, maxH).
+            snapInside(painter.paintableArea().skipRight(10).skipBottom(20));
+        painter.defer(() => WidgetPainter.paintGateTooltip(painter, hintRect, f.gate, stats.time, mayNeedToScale));
     }
 
     stableDuration(hand) {
