@@ -3,15 +3,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 import {Complex} from "../math/Complex.js"
@@ -27,155 +18,72 @@ import {Seq} from "../base/Seq.js"
 import {Shaders} from "../webgl/Shaders.js"
 import {Util} from "../base/Util.js"
 import {WglConfiguredShader} from "../webgl/WglConfiguredShader.js"
-import {
-    Inputs,
-    Outputs,
-    currentShaderCoder,
-    makePseudoShaderWithInputsAndOutputAndCode
-} from "../webgl/ShaderCoders.js"
+import {Inputs, Outputs, currentShaderCoder, makePseudoShaderWithInputsAndOutputAndCode} from "../webgl/ShaderCoders.js"
 import {WglTexturePool} from "../webgl/WglTexturePool.js"
 import {WglTextureTrader} from "../webgl/WglTextureTrader.js"
 
-/**
- * Derives conditional computational basis measurement probabilities from the state vector.
- *
- * @param {!WglTexture} ketTexture The texture storing the wavefunction.
- * @param {!WglTexture} controlTexture A precomputed texture storing a control mask set to 1 for satisfying states.
- * @param {!int} rangeOffset Which wire the probability display starts on.
- * @param {!int} rangeLength How many wires the probability display covers.
- * @returns {!WglTexture} Texture storing the probabilities. Not normalized.
- */
 function probabilityStatTexture(ketTexture, controlTexture, rangeOffset, rangeLength, wireCutMask=0) {
     let trader = new WglTextureTrader(ketTexture);
     trader.dontDeallocCurrentTexture();
     let n = currentShaderCoder().vec2.arrayPowerSizeOfTexture(ketTexture);
-
     trader.shadeAndTrade(tex => amplitudesToProbabilities(tex, controlTexture), WglTexturePool.takeVecFloatTex(n));
-
-    // A CHANCE display refers to the logical qubits covered by its gate. If a
-    // WireCut occurred on one of those qubits, that qubit is no longer part of
-    // the subsystem whose probabilities are being displayed. Trace it out
-    // before selecting the range. Cuts outside the range are already
-    // marginalized by the range-folding below and must not change the number
-    // of displayed states.
     let effectiveRangeLength = rangeLength;
     let cutCount = 0;
-    for (let physicalBit = rangeOffset;
-         physicalBit < rangeOffset + rangeLength && physicalBit < 31;
-         physicalBit++) {
-        if ((wireCutMask & (1 << physicalBit)) === 0) {
-            continue;
-        }
-
-        // Move the bit to the least-significant position, sum adjacent
-        // entries to trace it out, then rotate the surviving bits back into
-        // their original physical order.
+    for (let physicalBit = rangeOffset; physicalBit < rangeOffset + rangeLength && physicalBit < 31; physicalBit++) {
+        if ((wireCutMask & (1 << physicalBit)) === 0) continue;
         let currentBit = physicalBit - cutCount;
         trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -currentBit));
         trader.shadeHalveAndTrade(Shaders.sumFoldFloatAdjacents);
         n--;
-        if (n > 0 && currentBit > 0) {
-            trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(
-                tex,
-                -(n - currentBit)));
-        }
+        if (n > 0 && currentBit > 0) trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -(n - currentBit)));
         cutCount++;
         effectiveRangeLength--;
     }
-
-    // Put the surviving range at the low end, preserving the original CHANCE
-    // ordering among the surviving physical wires.
-    let activeRangeOffset = rangeOffset;
-    trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -activeRangeOffset));
-
+    trader.shadeAndTrade(tex => GateShaders.cycleAllBitsFloat(tex, -rangeOffset));
     while (n > effectiveRangeLength) {
         n--;
         trader.shadeHalveAndTrade(Shaders.sumFoldFloat);
     }
-
-    if (currentShaderCoder().float.needRearrangingToBeInVec4Format) {
-        trader.shadeQuarterAndTrade(Shaders.packFloatIntoVec4);
-    }
+    if (currentShaderCoder().float.needRearrangingToBeInVec4Format) trader.shadeQuarterAndTrade(Shaders.packFloatIntoVec4);
     return trader.currentTexture;
 }
 
-/**
- * @param {!WglTexture} inputTexture
- * @param {!WglTexture} controlTex
- * @returns {!WglConfiguredShader}
- */
-let amplitudesToProbabilities = (inputTexture, controlTex) =>
-    AMPLITUDES_TO_PROBABILITIES_SHADER(inputTexture, controlTex);
+let amplitudesToProbabilities = (inputTexture, controlTex) => AMPLITUDES_TO_PROBABILITIES_SHADER(inputTexture, controlTex);
 const AMPLITUDES_TO_PROBABILITIES_SHADER = makePseudoShaderWithInputsAndOutputAndCode(
-    [
-        Inputs.vec2('input'),
-        Inputs.bool('control')
-    ],
-    Outputs.float(),
+    [Inputs.vec2('input'), Inputs.bool('control')], Outputs.float(),
     `float outputFor(float k) {
         vec2 amp = read_input(k);
         return dot(amp, amp) * read_control(k);
     }`);
 
 function chanceDisplayedSpan(circuitDefinition, col, row, span) {
-    if (circuitDefinition === undefined || col === undefined || row === undefined) {
-        return span;
-    }
+    if (circuitDefinition === undefined || col === undefined || row === undefined) return span;
     let wireCutMask = circuitDefinition.colIsWireCutMask(col);
     let cutInRange = 0;
-    for (let r = row; r < row + span && r < 31; r++) {
-        if ((wireCutMask & (1 << r)) !== 0) {
-            cutInRange++;
-        }
-    }
+    for (let r = row; r < row + span && r < 31; r++) if ((wireCutMask & (1 << r)) !== 0) cutInRange++;
     return span - cutInRange;
 }
 
-/**
- * Post-processes the pixels that come out of makeProbabilitySpanPipeline into a vector of normalized probabilities.
- * @param {!Float32Array} pixels
- * @param {!int} span
- * @returns {!Matrix}
- */
 function probabilityPixelsToColumnVector(pixels, span, circuitDefinition=undefined, col=undefined, row=undefined) {
     span = chanceDisplayedSpan(circuitDefinition, col, row, span);
     let n = 1 << span;
-    // CAUTION: pixels may be longer than n due to the length rounding up to a multiple of 4.
     let unity = 0;
-    for (let i = 0; i < n; i++) {
-        unity += pixels[i];
-    }
-    if (isNaN(unity) || unity < 0.000001) {
-        return Matrix.zero(1, n).times(NaN);
-    }
+    for (let i = 0; i < n; i++) unity += pixels[i];
+    if (isNaN(unity) || unity < 0.000001) return Matrix.zero(1, n).times(NaN);
     let buf = new Float32Array(n*2);
-    for (let i = 0; i < n; i++) {
-        buf[i*2] = pixels[i] / unity;
-    }
+    for (let i = 0; i < n; i++) buf[i*2] = pixels[i] / unity;
     return new Matrix(1, n, buf);
 }
 
-/**
- * Produces the exported simulator data associated with a probability display.
- * @param {!Matrix} data
- * @returns {!{probabilities: !float[]}}
- */
 function probabilityDataToJson(data) {
-    return {
-        probabilities: Seq.range(data.height()).map(k => Complex.realPartOf(data.cell(0, k))).toArray()
-    };
+    return {probabilities: Seq.range(data.height()).map(k => Complex.realPartOf(data.cell(0, k))).toArray()};
 }
 
-/**
- * @param {!GateDrawParams} args
- * @private
- */
 function _paintMultiProbabilityDisplay_grid(args) {
     let {painter, rect: {x, y, w, h}} = args;
     let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
     painter.fillRect(args.rect, Config.DISPLAY_GATE_BACK_COLOR);
-
     if (d < 1) {
         args.painter.ctx.save();
         args.painter.ctx.globalAlpha *= 0.2;
@@ -184,11 +92,7 @@ function _paintMultiProbabilityDisplay_grid(args) {
         return;
     }
     let r = args.gate.height - 5;
-    painter.trace(tracer => {
-        for (let i = 1; i < n; i++) {
-            tracer.line(x, y + d * i, x + w, y + d * i);
-        }
-    }).thenStroke('lightgray', r <= 0 ? 1 : 1 / r);
+    painter.trace(tracer => { for (let i = 1; i < n; i++) tracer.line(x, y + d * i, x + w, y + d * i); }).thenStroke('lightgray', r <= 0 ? 1 : 1 / r);
     painter.strokeRect(args.rect, 'lightgray');
 }
 
@@ -197,7 +101,6 @@ function _paintMultiProbabilityDisplay_probabilityBars(args) {
     let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
     let e = Math.max(d, 1);
-
     painter.ctx.save();
     painter.ctx.beginPath();
     painter.ctx.moveTo(x, y);
@@ -210,7 +113,6 @@ function _paintMultiProbabilityDisplay_probabilityBars(args) {
     }
     painter.ctx.lineTo(x, y + h);
     painter.ctx.lineTo(x, y);
-
     painter.ctx.strokeStyle = 'gray';
     painter.ctx.lineWidth = 1;
     painter.ctx.stroke();
@@ -224,7 +126,6 @@ function _paintMultiProbabilityDisplay_logarithmHints(args) {
     let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
     let e = Math.max(d, 1);
-
     painter.ctx.save();
     painter.ctx.beginPath();
     painter.ctx.moveTo(x, y);
@@ -237,7 +138,6 @@ function _paintMultiProbabilityDisplay_logarithmHints(args) {
         painter.ctx.lineTo(px, py + e);
     }
     painter.ctx.lineTo(x, y + h);
-
     painter.ctx.lineWidth = 1;
     painter.ctx.strokeStyle = '#CCC';
     painter.ctx.stroke();
@@ -248,19 +148,14 @@ function _paintMultiProbabilityDisplay_tooltips(args) {
     let {painter, rect: {x, y, w, h}, customStats: probabilities} = args;
     let n = args.customStats === undefined ? 1 << args.gate.height : args.customStats.height();
     let d = h / n;
-
     for (let pt of args.focusPoints) {
         let k = Math.floor((pt.y - y) / d);
         if (args.rect.containsPoint(pt) && k >= 0 && k < n) {
             let p = probabilities === undefined ? NaN : probabilities.rawBuffer()[k * 2];
             painter.strokeRect(new Rect(x, y + k * d, w, d), 'orange', 2);
-            MathPainter.paintDeferredValueTooltip(
-                painter,
-                x + w,
-                y + k * d,
+            MathPainter.paintDeferredValueTooltip(painter, x + w, y + k * d,
                 `Chance of |${Util.bin(k, probabilities.height() === 0 ? 0 : Math.round(Math.log2(probabilities.height())))}⟩ (decimal ${k}) if measured`,
-                'raw: ' + (p * 100).toFixed(4) + "%",
-                'log: ' + (Math.log10(p) * 10).toFixed(1) + " dB");
+                'raw: ' + (p * 100).toFixed(4) + "%", 'log: ' + (Math.log10(p) * 10).toFixed(1) + " dB");
         }
     }
 }
@@ -268,105 +163,67 @@ function _paintMultiProbabilityDisplay_tooltips(args) {
 function _paintMultiProbabilityDisplay_probabilityTexts(args) {
     let {painter, rect: {x, y, w, h}, customStats: probabilities} = args;
     let d = h / probabilities.height();
-
     for (let i = 0; i < probabilities.height(); i++) {
         let p = probabilities.rawBuffer()[i * 2];
-        painter.print(
-            (p * 100).toFixed(1) + "%",
-            x + w - 2,
-            y + d * (i + 0.5),
-            'right',
-            'middle',
-            'black',
-            '8pt monospace',
-            w - 4,
-            d);
+        painter.print((p * 100).toFixed(1) + "%", x + w - 2, y + d * (i + 0.5), 'right', 'middle', 'black', '8pt monospace', w - 4, d);
     }
 }
 
 function paintMultiProbabilityDisplay(args) {
     _paintMultiProbabilityDisplay_grid(args);
-
     let probabilities = args.customStats;
     let noData = probabilities === undefined || probabilities.hasNaN();
     if (noData) {
         args.painter.printParagraph("NaN", args.rect, new Point(0.5, 0.5), 'red');
     } else {
         let textFits = args.rect.h / probabilities.height() > 8;
-        if (!textFits) {
-            _paintMultiProbabilityDisplay_logarithmHints(args);
-        }
+        if (!textFits) _paintMultiProbabilityDisplay_logarithmHints(args);
         _paintMultiProbabilityDisplay_probabilityBars(args);
-        if (textFits) {
-            _paintMultiProbabilityDisplay_probabilityTexts(args);
-        }
+        if (textFits) _paintMultiProbabilityDisplay_probabilityTexts(args);
     }
-
     _paintMultiProbabilityDisplay_tooltips(args);
 }
 
-/**
- * @param {!GateBuilder} builder
- * @returns {!GateBuilder}
- */
 function shared_chanceGateMaker(builder) {
-    return builder.
-        setSymbol("Chance").
-        setTitle("Probability Display").
-        setBlurb("Shows chances of outcomes if a measurement was performed.\n" +
-            "Use controls to see conditional probabilities.").
+    return builder.setSymbol("Chance").setTitle("Probability Display").
+        setBlurb("Shows chances of outcomes if a measurement was performed.\nUse controls to see conditional probabilities.").
         promiseHasNoNetEffectOnStateVector().
         setExtraDisableReasonFinder(args => args.isNested ? "can't\nnest\ndisplays\n(sorry)" : undefined);
 }
 
-/**
- * @param {!GateBuilder} builder
- * @param {!int} span
- * @returns {!GateBuilder}
- */
 function multiChanceGateMaker(span, builder) {
     return shared_chanceGateMaker(builder).
         setSerializedId("Chance" + span).
-        setStatTexturesMaker(ctx =>
-            probabilityStatTexture(
-                ctx.stateTrader.currentTexture,
-                ctx.controlsTexture,
-                ctx.row,
-                span,
-                ctx.circuitDefinition === undefined ? 0 : ctx.circuitDefinition.colIsWireCutMask(ctx.col))).
-        setStatPixelDataPostProcessor((pixels, circuit, col, row) =>
-            probabilityPixelsToColumnVector(pixels, span, circuit, col, row)).
+        setStatTexturesMaker(ctx => probabilityStatTexture(ctx.stateTrader.currentTexture, ctx.controlsTexture, ctx.row, span,
+            ctx.circuitDefinition === undefined ? 0 : ctx.circuitDefinition.colIsWireCutMask(ctx.col))).
+        setStatPixelDataPostProcessor((pixels, circuit, col, row) => probabilityPixelsToColumnVector(pixels, span, circuit, col, row)).
         setProcessedStatsToJsonFunc(probabilityDataToJson).
         setDrawer(GatePainting.makeDisplayDrawer(paintMultiProbabilityDisplay));
 }
 
-/**
- * @param {!GateBuilder} builder
- * @returns {!GateBuilder}
- */
+// Toolbox preview: a single-qubit Chance display at 50%, with no surrounding
+// gate background or frame, matching the visual treatment of the Bloch preview.
+function paintChanceToolboxPreview(args) {
+    let {painter, rect} = args;
+    painter.fillRect(rect.takeBottomProportion(0.5), Config.DISPLAY_GATE_FORE_COLOR);
+    painter.print("50.0%", rect.center().x, rect.center().y, 'center', 'middle', 'black', '9pt sans-serif', rect.w, rect.h);
+}
+
 function singleChangeGateMaker(builder) {
     return shared_chanceGateMaker(builder).
         setSerializedId("Chance").
         markAsDrawerNeedsSingleQubitDensityStats().
-        setDrawer(GatePainting.makeDisplayDrawer(args => {
+        setDrawer(args => {
+            if (args.positionInCircuit === undefined) {
+                paintChanceToolboxPreview(args);
+                return;
+            }
             let {row, col} = args.positionInCircuit;
-            MathPainter.paintProbabilityBox(
-                args.painter,
-                args.stats.controlledWireProbabilityJustAfter(row, col),
-                args.rect,
-                args.focusPoints);
-        }));
+            MathPainter.paintProbabilityBox(args.painter, args.stats.controlledWireProbabilityJustAfter(row, col), args.rect, args.focusPoints);
+        });
 }
 
 let ProbabilityDisplayFamily = Gate.buildFamily(1, 16, (span, builder) =>
-    span === 1 ?
-        singleChangeGateMaker(builder) :
-        multiChanceGateMaker(span, builder));
+    span === 1 ? singleChangeGateMaker(builder) : multiChanceGateMaker(span, builder));
 
-export {
-    ProbabilityDisplayFamily,
-    probabilityStatTexture,
-    probabilityPixelsToColumnVector,
-    amplitudesToProbabilities,
-    probabilityDataToJson,
-};
+export {ProbabilityDisplayFamily, probabilityStatTexture, probabilityPixelsToColumnVector, amplitudesToProbabilities, probabilityDataToJson};
