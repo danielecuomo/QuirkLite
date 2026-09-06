@@ -21,19 +21,10 @@ import {MathPainter} from "../draw/MathPainter.js"
 import {Point} from "../math/Point.js"
 import {Matrix} from "../math/Matrix.js"
 
-function _paintBlochSphereDisplay_tooltips(
-        painter,
-        drawArea,
-        x,
-        y,
-        z,
-        focusPoints) {
+function _paintBlochSphereDisplay_tooltips(painter, drawArea, x, y, z, focusPoints) {
     let c = drawArea.center();
     let u = Math.min(drawArea.w, drawArea.h) / 2;
-    if (focusPoints.every(pt => pt.distanceTo(c) >= u)) {
-        return;
-    }
-
+    if (focusPoints.every(pt => pt.distanceTo(c) >= u)) return;
     const τ = Math.PI * 2;
     let deg = v => (v >= 0 ? '+' : '') + (v*360/τ).toFixed(2) + '°';
     let forceSign = v => (v >= 0 ? '+' : '') + v.toFixed(4);
@@ -41,52 +32,33 @@ function _paintBlochSphereDisplay_tooltips(
     let ϕ = Math.atan2(y, -x);
     let θ = Math.max(0, Math.PI/2 - Math.atan2(-z, Math.sqrt(y*y + x*x)));
     painter.strokeCircle(c, u, 'orange', 2);
-    MathPainter.paintDeferredValueTooltip(
-        painter,
-        c.x+u*Math.sqrt(0.5),
-        c.y-u*Math.sqrt(0.5),
-        'Bloch sphere representation of local state',
-        `r:${forceSign(d)}, ϕ:${deg(ϕ)}, θ:${deg(θ)}`,
+    MathPainter.paintDeferredValueTooltip(painter, c.x+u*Math.sqrt(0.5), c.y-u*Math.sqrt(0.5),
+        'Bloch sphere representation of local state', `r:${forceSign(d)}, ϕ:${deg(ϕ)}, θ:${deg(θ)}`,
         `x:${forceSign(-x)}, y:${forceSign(y)}, z:${forceSign(-z)}`);
 }
 
-function _paintBlochSphereDisplay_indicator(
-        painter,
-        x,
-        y,
-        z,
-        drawArea,
-        fillColor) {
+function _paintBlochSphereDisplay_indicator(painter, x, y, z, drawArea, fillColor) {
     let c = drawArea.center();
     let u = Math.min(drawArea.w, drawArea.h) / 2;
     let {dx, dy, dz} = MathPainter.coordinateSystem(u);
-
     let p = c.plus(dx.times(x)).plus(dy.times(y)).plus(dz.times(z));
     let r = 3.8 / (1 + x / 6);
-
     painter.strokeLine(c, p, 'black', 1.5);
     painter.fillCircle(p, r, fillColor);
-
     painter.ctx.save();
     painter.ctx.globalAlpha *= Math.min(1, Math.max(0, 1-x*x-y*y-z*z));
     painter.fillCircle(p, r, 'yellow');
     painter.ctx.restore();
-
     painter.strokeCircle(p, r, 'black');
-
     painter.ctx.save();
     painter.ctx.globalAlpha *= Math.min(1, Math.max(0, 0.5+x*5));
     painter.strokeLine(c, p, 'black', 2);
     painter.ctx.restore();
 }
 
-function paintBlochSphereDisplay(
-        painter,
-        qubitDensityMatrix,
-        drawArea,
-        focusPoints = [],
-        backgroundColor = Config.DISPLAY_GATE_BACK_COLOR,
-        fillColor = Config.DISPLAY_GATE_FORE_COLOR) {
+function paintBlochSphereDisplay(painter, qubitDensityMatrix, drawArea, focusPoints = [],
+                                 backgroundColor = Config.DISPLAY_GATE_BACK_COLOR,
+                                 fillColor = Config.DISPLAY_GATE_FORE_COLOR) {
     let c = drawArea.center();
     let u = Math.min(drawArea.w, drawArea.h) / 2;
     let {dx, dy, dz} = MathPainter.coordinateSystem(u);
@@ -96,9 +68,7 @@ function paintBlochSphereDisplay(
         trace.circle(c.x, c.y, u);
         trace.ellipse(c.x, c.y, dy.x, dx.y);
         trace.ellipse(c.x, c.y, dx.x, dz.y);
-        for (let d of [dx, dy, dz]) {
-            trace.line(c.x - d.x, c.y - d.y, c.x + d.x, c.y + d.y);
-        }
+        for (let d of [dx, dy, dz]) trace.line(c.x-d.x, c.y-d.y, c.x+d.x, c.y+d.y);
     }).thenStroke('#BBB');
 
     let [x, y, z] = [NaN, NaN, NaN];
@@ -108,11 +78,10 @@ function paintBlochSphereDisplay(
         [x, y, z] = qubitDensityMatrix.qubitDensityMatrixToBlochVector();
         _paintBlochSphereDisplay_indicator(painter, x, y, z, drawArea, fillColor);
     }
-
     _paintBlochSphereDisplay_tooltips(painter, drawArea, x, y, z, focusPoints);
 }
 
-// A fixed |+> state used only for the toolbox preview.
+// Fixed |+> state used only for the toolbox preview.
 const TOOLBOX_BLOCH_STATE = new Matrix(2, 2, new Float64Array([
     0.5, 0, 0.5, 0,
     0.5, 0, 0.5, 0
@@ -125,9 +94,8 @@ let BlochSphereDisplay = new GateBuilder().
     markAsDrawerNeedsSingleQubitDensityStats().
     setDrawer(args => {
         if (args.positionInCircuit === undefined) {
-            GatePainting.paintBackground(args);
-            GatePainting.paintOutline(args);
-            paintBlochSphereDisplay(args.painter, TOOLBOX_BLOCH_STATE, args.rect);
+            // Toolbox: draw only the sphere. No gate background or frame.
+            paintBlochSphereDisplay(args.painter, TOOLBOX_BLOCH_STATE, args.rect, [], 'transparent');
             return;
         }
         let {row, col} = args.positionInCircuit;
