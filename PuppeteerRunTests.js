@@ -18,7 +18,9 @@ const puppeteer = require('puppeteer');
 
 (async () => {
     try {
-        const browser = await puppeteer.launch();
+        const browser = await puppeteer.launch({
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
         const page = await browser.newPage();
         let caughtPageError = false;
         page.on('console', message => console.log(message.text()));
