@@ -212,7 +212,12 @@ Gates.TopToolboxGroups = [
         gates: [
             ParametrizedRotationGates.FormulaicRotationRz,
             ParametrizedRotationGates.FormulaicRotationRy,
-            ParametrizedRotationGates.FormulaicRotationRx,
+            ParametrizedRotationGates.FormulaicRotationRx
+        ]
+    },
+    {
+        hint: "Formulaic Ising",
+        gates: [
             FormulaicIsingGates.XX,
             FormulaicIsingGates.YY,
             FormulaicIsingGates.ZZ
