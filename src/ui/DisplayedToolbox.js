@@ -30,6 +30,7 @@ class DisplayedToolbox {
     static toolboxColorForGroup(group) {
         switch (group.hint) {
             case 'Probes': return '#F4D9D6';
+            case 'Post-selection': return '#F4D9D6';
             case 'Displays': return '#DCEFE2';
             case 'Half Turns': return '#E5DDF3';
             case 'Quarter Turns': return '#DCEAF5';
@@ -43,7 +44,9 @@ class DisplayedToolbox {
     }
 
     static isSingleColumnGroup(group) {
-        return group.hint === 'Displays' ||
+        return group.hint === 'Probes' ||
+            group.hint === 'Post-selection' ||
+            group.hint === 'Displays' ||
             group.hint === 'Formulaic' ||
             group.hint === 'Ising' ||
             group.hint === '3-qubit Ising' ||
@@ -180,52 +183,42 @@ class DisplayedToolbox {
     }
 
     desiredHeight() {
-        return (1 + this.groupHeight) * (Config.GATE_RADIUS * 2 + 2) - Config.GATE_RADIUS;
+        let maxGates = this.toolboxGroups.map(g => g.gates.length).max();
+        return Config.TOOLBOX_MARGIN_Y*2 + Math.max(this.groupHeight, maxGates)*Config.TOOLBOX_GATE_SPAN + 20;
+    }
+
+    paint(painter, stats, hand) {
+        this._standardApperance.paint(painter);
+        if (hand !== undefined) {
+            this._paintFocus(painter, stats, hand);
+        }
     }
 
     _paintStandardContents(painter) {
+        let stats = new CircuitStats();
+        let hand = new Hand();
+        this._paintGatesInGroups(painter, stats, hand);
+        this._paintTitle(painter);
+    }
+
+    _paintGatesInGroups(painter, stats, hand) {
         for (let groupIndex = 0; groupIndex < this.toolboxGroups.length; groupIndex++) {
-            this._paintGatesInGroup(painter, Hand.EMPTY, groupIndex);
-        }
-
-        let r = this.curArea(Config.TOOLBOX_MARGIN_X);
-        let {x, y} = r.center();
-        painter.ctx.save();
-        painter.ctx.translate(x, y);
-        painter.ctx.rotate(-Math.PI/2);
-        painter.printLine(this.name, new Rect(-r.h / 2, -r.w / 2, r.h, r.w), 0.5, 'black', 24);
-        painter.ctx.restore();
-    }
-
-    _paintGatesInGroup(painter, hand, groupIndex) {
-        let group = this.toolboxGroups[groupIndex];
-        let r = this.groupLabelRect(groupIndex);
-        painter.print(
-            group.hint,
-            r.x + r.w/2,
-            r.y + r.h/2,
-            'center',
-            'middle',
-            'black',
-            '16px sans-serif',
-            r.w,
-            r.h);
-
-        let color = DisplayedToolbox.toolboxColorForGroup(group);
-        for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
-            let gate = group.gates[gateIndex];
-            if (gate === undefined) {
-                continue;
+            let group = this.toolboxGroups[groupIndex];
+            for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
+                let gate = group.gates[gateIndex];
+                if (gate !== undefined) {
+                    this._paintGate(painter, stats, hand, gate, groupIndex, gateIndex);
+                }
             }
-            let rect = this.gateDrawRect(groupIndex, gateIndex);
-            DisplayedToolbox._paintGate(painter, hand, gate, rect, false, CircuitStats.EMPTY, color);
         }
     }
 
-    static _paintGate(painter, hand, gate, rect, isHighlighted, stats, toolboxFillColor=undefined) {
-        let drawer = gate.customDrawer || GatePainting.DEFAULT_DRAWER;
-        painter.startIgnoringIncomingTouchBlockers();
-        drawer(new GateDrawParams(
+    _paintGate(painter, stats, hand, gate, groupIndex, gateIndex) {
+        let rect = this.gateDrawRect(groupIndex, gateIndex);
+        let group = this.toolboxGroups[groupIndex];
+        let toolboxFillColor = DisplayedToolbox.toolboxColorForGroup(group);
+        let isHighlighted = hand.heldGate === gate;
+        let args = new GateDrawParams(
             painter,
             hand,
             true,
@@ -238,80 +231,56 @@ class DisplayedToolbox {
             undefined,
             [],
             undefined,
-            toolboxFillColor));
-        painter.stopIgnoringIncomingTouchBlockers();
+            toolboxFillColor);
+        GatePainting.paintGate(args);
     }
 
-    paint(painter, stats, hand) {
-        painter.fillRect(this.curArea(painter.canvas.width), Config.BACKGROUND_COLOR_TOOLBOX);
-        this._standardApperance.paint(0, this.top, painter);
-        this._paintDeviations(painter, stats, hand);
-    }
-
-    _paintDeviations(painter, stats, hand) {
-        for (let groupIndex = 0; groupIndex < this.toolboxGroups.length; groupIndex++) {
-            if (groupIndex >= this._originalGroups.length) {
-                this._paintGatesInGroup(painter, hand, groupIndex);
-            }
-
-            let group = this.toolboxGroups[groupIndex];
-            for (let gateIndex = 0; gateIndex < group.gates.length; gateIndex++) {
-                if (group.gates[gateIndex] !== undefined) {
-                    painter.noteTouchBlocker({
-                        rect: this.gateDrawRect(groupIndex, gateIndex),
-                        cursor: 'pointer'}
-                    );
-                }
-            }
-        }
-
-        this._paintFocus(painter, stats, hand);
+    _paintTitle(painter) {
+        let x = this.curArea(painter.width()).center().x;
+        let y = this.top + 8;
+        painter.print(this.name, x, y, 'center', 'middle', 'black', 'bold 13px sans-serif');
     }
 
     _paintFocus(painter, stats, hand) {
-        let f = this.findGateAt(hand.pos);
-        if (f === undefined || (hand.heldGate !== undefined && f.gate.symbol !== hand.heldGate.symbol)) {
-            return;
+        if (hand.heldGate !== undefined) {
+            let g = this.findGateAt(hand.pos);
+            if (g !== undefined) {
+                let rect = g.rect;
+                let group = this.toolboxGroups[g.groupIndex];
+                let isHighlighted = hand.heldGate === g.gate;
+                let args = new GateDrawParams(
+                    painter,
+                    hand,
+                    true,
+                    isHighlighted,
+                    false,
+                    false,
+                    rect,
+                    g.gate,
+                    stats,
+                    undefined,
+                    [],
+                    undefined,
+                    DisplayedToolbox.toolboxColorForGroup(group));
+                GatePainting.paintGate(args);
+            }
         }
-
-        DisplayedToolbox._paintGate(painter, hand, f.gate, f.rect, true, stats, Config.GATE_FILL_COLOR);
-
-        painter.ctx.save();
-        painter.ctx.globalAlpha = 0;
-        painter.ctx.translate(-10000, -10000);
-        let {maxW, maxH} = WidgetPainter.paintGateTooltip(
-            painter, new Rect(0, 0, 500, 300), f.gate, stats.time, true);
-        let mayNeedToScale = maxW >= 500 || maxH >= 300;
-        painter.ctx.restore();
-
-        let cx = f.rect.right() + 1;
-        let hintRect = new Rect(cx, f.rect.center().y, maxW, maxH).
-            snapInside(painter.paintableArea().skipRight(10).skipBottom(20));
-        painter.defer(() => WidgetPainter.paintGateTooltip(painter, hintRect, f.gate, stats.time, mayNeedToScale));
     }
 
     stableDuration(hand) {
-        return seq(hand.hoverPoints()).
-            map(p => this.findGateAt(p)).
-            filter(e => e !== undefined).
-            map(e => e.gate.stableDuration()).
-            min(Infinity);
+        return hand.heldGate === undefined ? 0 : 0.2;
     }
 
     tryGrab(hand) {
-        if (hand.pos === undefined || hand.isBusy()) {
-            return hand;
+        let hit = this.findGateAt(hand.pos);
+        if (hit === undefined) {
+            return false;
         }
-
-        let f = this.findGateAt(hand.pos);
-        if (f === undefined) {
-            return hand;
-        }
-
-        if (f.gate.symbol === MysteryGateSymbol) {
-            setTimeout(() => { this.toolboxGroups[f.groupIndex].gates[f.gateIndex] = MysteryGateMaker(); }, 0.1);
-        }
-        return hand.withHeldGate(f.gate, new Point(Config.GATE_RADIUS, Config.GATE_RADIUS));
+        hand.heldGate = hit.gate;
+        hand.holdOffset = new Point(hand.pos.x - hit.rect.x, hand.pos.y - hit.rect.y);
+        hand.heldColumn = hit.groupIndex;
+        hand.heldRow = hit.gateIndex;
+        return true;
     }
 }
 
