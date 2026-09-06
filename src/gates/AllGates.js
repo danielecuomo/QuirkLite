@@ -237,8 +237,8 @@ const INITIAL_STATES_TO_GATES = new Map([
     ['1', [Gates.HalfTurns.X]],
     ['+', [Gates.HalfTurns.H]],
     ['-', [Gates.HalfTurns.H, Gates.HalfTurns.Z]],
-    ['i', [Gates.HalfTurns.H, Gates.HalfTurns.SqrtZForward]],
-    ['-i', [Gates.HalfTurns.H, Gates.HalfTurns.SqrtZBackward]]
+    ['i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZForward]],
+    ['-i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZBackward]]
 ]);
 
 export {Gates, INITIAL_STATES_TO_GATES}
