@@ -31,10 +31,40 @@ const makeIsingGate = (axis, pauli) => new GateBuilder().
     promiseEffectIsUnitary().
     gate;
 
+// Three-qubit fixed Ising interaction:
+//   exp(-i*pi/4 * P⊗P⊗P)
+// for P in {X, Y, Z}.
+const makeThreeQubitIsingMatrix = pauli => {
+    let ppp = pauli.tensorProduct(pauli).tensorProduct(pauli);
+    let c = Math.cos(Math.PI / 4);
+    let s = Math.sin(Math.PI / 4);
+    return Matrix.identity(8).times(c).minus(ppp.times(new Complex(0, s)));
+};
+
+const makeThreeQubitIsingGate = (axis, pauli) => new GateBuilder().
+    setHeight(3).
+    setSerializedIdAndSymbol(`Ising${axis}${axis}${axis}`, `${axis}${axis}${axis}`).
+    setTitle(`Ising ${axis}${axis}${axis} Gate`).
+    setBlurb(`Applies exp(-iπ/4 ${axis}⊗${axis}⊗${axis}).`).
+    setKnownEffectToMatrix(makeThreeQubitIsingMatrix(pauli)).
+    promiseEffectIsUnitary().
+    gate;
+
 IsingGates.XX = makeIsingGate('X', Matrix.PAULI_X);
 IsingGates.YY = makeIsingGate('Y', Matrix.PAULI_Y);
 IsingGates.ZZ = makeIsingGate('Z', Matrix.PAULI_Z);
 
-IsingGates.all = [IsingGates.XX, IsingGates.YY, IsingGates.ZZ];
+IsingGates.XXX = makeThreeQubitIsingGate('X', Matrix.PAULI_X);
+IsingGates.YYY = makeThreeQubitIsingGate('Y', Matrix.PAULI_Y);
+IsingGates.ZZZ = makeThreeQubitIsingGate('Z', Matrix.PAULI_Z);
+
+IsingGates.all = [
+    IsingGates.XX,
+    IsingGates.YY,
+    IsingGates.ZZ,
+    IsingGates.XXX,
+    IsingGates.YYY,
+    IsingGates.ZZZ
+];
 
 export {IsingGates}
