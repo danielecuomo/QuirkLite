@@ -45,6 +45,7 @@ import {MultiplicationGates} from "./MultiplicationGates.js"
 import {MultiplyAccumulateGates} from "./MultiplyAccumulateGates.js"
 import {NeGate} from "./Joke_NeGate.js"
 import {ParametrizedRotationGates} from "./ParametrizedRotationGates.js"
+import {FormulaicIsingGates} from "./FormulaicIsingGates.js"
 import {PhaseGradientGates} from "./PhaseGradientGates.js"
 import {PivotFlipGates} from "./PivotFlipGates.js"
 import {PostSelectionGates} from "./PostSelectionGates.js"
@@ -114,6 +115,7 @@ Gates.OtherX = VariousXGates;
 Gates.OtherY = VariousYGates;
 Gates.OtherZ = VariousZGates;
 Gates.ParametrizedRotationGates = ParametrizedRotationGates;
+Gates.FormulaicIsingGates = FormulaicIsingGates;
 Gates.PhaseGradientGates = PhaseGradientGates;
 Gates.PivotFlipGates = PivotFlipGates;
 Gates.PostSelectionGates = PostSelectionGates;
@@ -169,6 +171,7 @@ Gates.KnownToSerializer = [
     ...MultiplyAccumulateGates.all,
     ...QuarterTurnGates.all,
     ...ParametrizedRotationGates.all,
+    ...FormulaicIsingGates.all,
     ...PhaseGradientGates.all,
     ...PivotFlipGates.all,
     ...PostSelectionGates.all,
@@ -209,7 +212,10 @@ Gates.TopToolboxGroups = [
         gates: [
             ParametrizedRotationGates.FormulaicRotationRz,
             ParametrizedRotationGates.FormulaicRotationRy,
-            ParametrizedRotationGates.FormulaicRotationRx
+            ParametrizedRotationGates.FormulaicRotationRx,
+            FormulaicIsingGates.XX,
+            FormulaicIsingGates.YY,
+            FormulaicIsingGates.ZZ
         ]
     },
     {
