@@ -45,7 +45,6 @@ import {MultiplicationGates} from "./MultiplicationGates.js"
 import {MultiplyAccumulateGates} from "./MultiplyAccumulateGates.js"
 import {NeGate} from "./Joke_NeGate.js"
 import {ParametrizedRotationGates} from "./ParametrizedRotationGates.js"
-import {FormulaicIsingGates} from "./FormulaicIsingGates.js"
 import {PhaseGradientGates} from "./PhaseGradientGates.js"
 import {PivotFlipGates} from "./PivotFlipGates.js"
 import {PostSelectionGates} from "./PostSelectionGates.js"
@@ -115,7 +114,6 @@ Gates.OtherX = VariousXGates;
 Gates.OtherY = VariousYGates;
 Gates.OtherZ = VariousZGates;
 Gates.ParametrizedRotationGates = ParametrizedRotationGates;
-Gates.FormulaicIsingGates = FormulaicIsingGates;
 Gates.PhaseGradientGates = PhaseGradientGates;
 Gates.PivotFlipGates = PivotFlipGates;
 Gates.PostSelectionGates = PostSelectionGates;
@@ -171,7 +169,6 @@ Gates.KnownToSerializer = [
     ...MultiplyAccumulateGates.all,
     ...QuarterTurnGates.all,
     ...ParametrizedRotationGates.all,
-    ...FormulaicIsingGates.all,
     ...PhaseGradientGates.all,
     ...PivotFlipGates.all,
     ...PostSelectionGates.all,
@@ -216,14 +213,6 @@ Gates.TopToolboxGroups = [
         ]
     },
     {
-        hint: "Formulaic Ising",
-        gates: [
-            FormulaicIsingGates.XX,
-            FormulaicIsingGates.YY,
-            FormulaicIsingGates.ZZ
-        ]
-    },
-    {
         hint: "Ising",
         gates: [
             IsingGates.XX,
@@ -248,8 +237,8 @@ const INITIAL_STATES_TO_GATES = new Map([
     ['1', [Gates.HalfTurns.X]],
     ['+', [Gates.HalfTurns.H]],
     ['-', [Gates.HalfTurns.H, Gates.HalfTurns.Z]],
-    ['i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZForward]],
-    ['-i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZBackward]]
+    ['i', [Gates.HalfTurns.H, Gates.HalfTurns.SqrtZForward]],
+    ['-i', [Gates.HalfTurns.H, Gates.HalfTurns.SqrtZBackward]]
 ]);
 
 export {Gates, INITIAL_STATES_TO_GATES}
