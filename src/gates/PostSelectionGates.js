@@ -26,8 +26,17 @@ let POST_SELECT_DRAWER = args => {
         GatePainting.paintBackground(args);
         GatePainting.paintOutline(args);
         // In the toolbox, show the bra that identifies the selected state.
-        let symbol = args.gate === PostSelectionGates.PostSelectOff ? "<0|" : "<1|";
-        GatePainting.paintGateSymbol(args, symbol);
+        let symbol = args.gate === PostSelectionGates.PostSelectOff ? "⟨0|" : "⟨1|";
+        args.painter.print(
+            symbol,
+            args.rect.x + args.rect.w/2,
+            args.rect.y + args.rect.h/2,
+            'center',
+            'middle',
+            'black',
+            '16px serif',
+            args.rect.w,
+            args.rect.h);
     } else if (args.isHighlighted) {
         GatePainting.DEFAULT_DRAWER(args);
     } else {
