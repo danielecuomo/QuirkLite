@@ -73,7 +73,7 @@ Gates.Displays.DensityMatrixDisplay = DensityMatrixDisplayFamily.ofSize(1); Gate
 Gates.ErrorInjection = ErrorInjectionGate; Gates.Exponentiating = ExponentiatingGates; Gates.FourierTransformGates = FourierTransformGates; Gates.HalfTurns = HalfTurnGates;
 Gates.ImaginaryGate = ImaginaryGate; Gates.AntiImaginaryGate = AntiImaginaryGate; Gates.SqrtImaginaryGate = SqrtImaginaryGate; Gates.AntiSqrtImaginaryGate = AntiSqrtImaginaryGate;
 Gates.IncrementGates = IncrementGates; Gates.InputGates = InputGates; Gates.InterleaveBitsGates = InterleaveBitsGates; Gates.ModularIncrementGates = ModularIncrementGates; Gates.ModularAdditionGates = ModularAdditionGates; Gates.ModularMultiplicationGates = ModularMultiplicationGates; Gates.ModularMultiplyAccumulateGates = ModularMultiplyAccumulateGates;
-Gates.MultiplicationGates = MultiplicationGates; Gates.MultiplyAccumulateGates = MultiplyAccumulateGates; Gates.NeGate = NeGate; Gates.OtherX = VariousXGates; Gates.OtherY = VariousYGates; Gates.OtherZ = VariousZGates; Gates.ParametrizedRotationGates = ParametrizedRotationGates; Gates.PhaseGradientGates = PhaseGradientGates; Gates.PivotFlipGates = PivotFlipGates; Gates.PostSelectionGates = PostSelectionGates; Gates.Powering = PoweringGates; Gates.QuarterTurns = QuarterTurnGates; Gates.ReverseBitsGateFamily = ReverseBitsGateFamily; Gates.ResetGates = ResetGates; Gates.Detectors = Detectors; Gates.SpacerGate = SpacerGate; Gates.WireCutGate = WireCutGate; Gates.UniversalNot = UniversalNotGate; Gates.XorGates = XorGates; Gates.ZeroGate = ZeroGate;
+Gates.MultiplicationGates = MultiplicationGates; Gates.MultiplyAccumulateGates = MultiplyAccumulateGates; Gates.NeGate = NeGate; Gates.OtherX = VariousXGates; Gates.OtherY = VariousYGates; Gates.ParametrizedRotationGates = ParametrizedRotationGates; Gates.PhaseGradientGates = PhaseGradientGates; Gates.PivotFlipGates = PivotFlipGates; Gates.PostSelectionGates = PostSelectionGates; Gates.Powering = PoweringGates; Gates.QuarterTurns = QuarterTurnGates; Gates.ReverseBitsGateFamily = ReverseBitsGateFamily; Gates.ResetGates = ResetGates; Gates.Detectors = Detectors; Gates.SpacerGate = SpacerGate; Gates.WireCutGate = WireCutGate; Gates.UniversalNot = UniversalNotGate; Gates.XorGates = XorGates; Gates.ZeroGate = ZeroGate;
 
 Gates.KnownToSerializer = [
     ...Controls.all, ...InputGates.all, MeasurementGate, XMeasurementGate, BellMeasurementGate, SwapGateHalf, SpacerGate, WireCutGate, UniversalNotGate, ErrorInjectionGate, ZeroGate, NeGate, ImaginaryGate, AntiImaginaryGate, SqrtImaginaryGate, AntiSqrtImaginaryGate,
@@ -107,7 +107,7 @@ Amps2.customDrawer = args => {
 
 Gates.TopToolboxGroups = [
     {hint: "Probes", gates: [MeasurementGate, XMeasurementGate, BellMeasurementGate]},
-    {hint: "Post-selection", gates: [PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn, PostSelectionGates.PostSelectAntiX, PostSelectionGates.PostSelectX, PostSelectionGates.PostSelectAntiY, PostSelectionGates.PostSelectY]},
+    {hint: "Post-selection", gates: [PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn]},
     {hint: "Displays", gates: [BlochSphereDisplay, ProbabilityDisplayFamily.ofSize(1), Amps2]},
     {hint: "Formulaic", gates: [
         ParametrizedRotationGates.FormulaicRotationRx,
