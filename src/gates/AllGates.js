@@ -215,7 +215,9 @@ Gates.TopToolboxGroups = [
     {
         hint: "Ising",
         gates: [
-            IsingGates.XX
+            IsingGates.XX,
+            IsingGates.YY,
+            IsingGates.ZZ
         ]
     },
     {
