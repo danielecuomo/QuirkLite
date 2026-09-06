@@ -60,6 +60,9 @@ import {VariousZGates} from "./VariousZGates.js"
 import {WireCutGate} from "./WireCutGate.js"
 import {XorGates} from "./XorGates.js"
 import {ZeroGate} from "./Joke_ZeroGate.js"
+import {Config} from "../Config.js"
+import {MathPainter} from "../draw/MathPainter.js"
+import {Matrix} from "../math/Matrix.js"
 import {seq} from "../base/Seq.js"
 
 let Gates = {};
@@ -79,10 +82,33 @@ Gates.KnownToSerializer = [
 let gatesById = seq(Gates.KnownToSerializer).keyedBy(g => g.serializedId);
 Gates.findKnownGateById = (id, customGateSet) => gatesById.has(id) ? gatesById.get(id) : customGateSet.findGateWithSerializedId(id);
 
+// The toolbox preview for Amps is a single amplitude cell, matching Quirk's
+// amplitude visualization: magnitude as the light-blue circle, probability
+// as the dark fill, and phase as the black radius line.
+let Amps2 = AmplitudeDisplayFamily.ofSize(2);
+let amps2CircuitDrawer = Amps2.customDrawer;
+Amps2.customDrawer = args => {
+    if (!args.isInToolbox) {
+        amps2CircuitDrawer(args);
+        return;
+    }
+    let amp = 1 / Math.sqrt(2);
+    let previewState = new Matrix(1, 1, new Float64Array([amp, 0]));
+    MathPainter.paintMatrix(
+        args.painter,
+        previewState,
+        args.rect,
+        Config.SUPERPOSITION_MID_COLOR,
+        'black',
+        Config.SUPERPOSITION_FORE_COLOR,
+        Config.SUPERPOSITION_BACK_COLOR,
+        'black');
+};
+
 Gates.TopToolboxGroups = [
     {hint: "Probes", gates: [MeasurementGate, XMeasurementGate, BellMeasurementGate]},
     {hint: "Post-selection", gates: [PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn, PostSelectionGates.PostSelectAntiX, PostSelectionGates.PostSelectX, PostSelectionGates.PostSelectAntiY, PostSelectionGates.PostSelectY]},
-    {hint: "Displays", gates: [BlochSphereDisplay, ProbabilityDisplayFamily.ofSize(1), AmplitudeDisplayFamily.ofSize(2)]},
+    {hint: "Displays", gates: [BlochSphereDisplay, ProbabilityDisplayFamily.ofSize(1), Amps2]},
     {hint: "Formulaic", gates: [
         ParametrizedRotationGates.FormulaicRotationRx,
         ParametrizedRotationGates.FormulaicRotationRy,
