@@ -44,6 +44,7 @@ const makeThreeQubitIsingMatrix = pauli => {
 const makeThreeQubitIsingGate = (axis, pauli) => new GateBuilder().
     setHeight(3).
     setSerializedIdAndSymbol(`Ising${axis}${axis}${axis}`, `${axis}${axis}${axis}`).
+    setSymbol(`${axis}${axis}${axis}_π/4`).
     setTitle(`Ising ${axis}${axis}${axis} Gate`).
     setBlurb(`Applies exp(-iπ/4 ${axis}⊗${axis}⊗${axis}).`).
     setKnownEffectToMatrix(makeThreeQubitIsingMatrix(pauli)).
