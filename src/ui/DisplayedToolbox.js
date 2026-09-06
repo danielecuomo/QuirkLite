@@ -46,6 +46,7 @@ class DisplayedToolbox {
         return group.hint === 'Displays' ||
             group.hint === 'Formulaic' ||
             group.hint === 'Ising' ||
+            group.hint === '3-qubit Ising' ||
             group.hint === 'Gadgets';
     }
 
