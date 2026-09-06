@@ -27,12 +27,7 @@ import {ErrorInjectionGate} from "./Debug_ErrorInjectionGate.js"
 import {ExponentiatingGates} from "./ExponentiatingGates.js"
 import {FourierTransformGates} from "./FourierTransformGates.js"
 import {HalfTurnGates} from "./HalfTurnGates.js"
-import {
-    ImaginaryGate,
-    AntiImaginaryGate,
-    SqrtImaginaryGate,
-    AntiSqrtImaginaryGate
-} from "./Joke_ImaginaryGate.js"
+import {ImaginaryGate, AntiImaginaryGate, SqrtImaginaryGate, AntiSqrtImaginaryGate} from "./Joke_ImaginaryGate.js"
 import {IncrementGates} from "./IncrementGates.js"
 import {InputGates} from "./InputGates.js"
 import {InterleaveBitsGates} from "./InterleaveBitsGates.js"
@@ -68,196 +63,36 @@ import {ZeroGate} from "./Joke_ZeroGate.js"
 import {seq} from "../base/Seq.js"
 
 let Gates = {};
-
-Gates.Special = {
-    Measurement: MeasurementGate,
-    XMeasurement: XMeasurementGate,
-    BellMeasurement: BellMeasurementGate,
-    WireCut: WireCutGate,
-    SwapHalf: SwapGateHalf
-};
-Gates.Displays = {
-    AmplitudeDisplayFamily: AmplitudeDisplayFamily,
-    ProbabilityDisplayFamily: ProbabilityDisplayFamily,
-    SampleDisplayFamily: SampleDisplayFamily,
-    DensityMatrixDisplayFamily: DensityMatrixDisplayFamily,
-    BlochSphereDisplay: BlochSphereDisplay
-};
-Gates.Arithmetic = ArithmeticGates;
-Gates.BitCountGates = BitCountGates;
-Gates.ComparisonGates = ComparisonGates;
-Gates.Controls = Controls;
-Gates.CountingGates = CountingGates;
-Gates.CycleBitsGates = CycleBitsGates;
-Gates.Displays.DensityMatrixDisplay = DensityMatrixDisplayFamily.ofSize(1);
-Gates.Displays.DensityMatrixDisplay2 = DensityMatrixDisplayFamily.ofSize(2);
-Gates.Displays.ChanceDisplay = Gates.Displays.ProbabilityDisplayFamily.ofSize(1);
-Gates.ErrorInjection = ErrorInjectionGate;
-Gates.Exponentiating = ExponentiatingGates;
-Gates.FourierTransformGates = FourierTransformGates;
-Gates.HalfTurns = HalfTurnGates;
-Gates.ImaginaryGate = ImaginaryGate;
-Gates.AntiImaginaryGate = AntiImaginaryGate;
-Gates.SqrtImaginaryGate = SqrtImaginaryGate;
-Gates.AntiSqrtImaginaryGate = AntiSqrtImaginaryGate;
-Gates.IncrementGates = IncrementGates;
-Gates.InputGates = InputGates;
-Gates.InterleaveBitsGates = InterleaveBitsGates;
-Gates.ModularIncrementGates = ModularIncrementGates;
-Gates.ModularAdditionGates = ModularAdditionGates;
-Gates.ModularMultiplicationGates = ModularMultiplicationGates;
-Gates.ModularMultiplyAccumulateGates = ModularMultiplyAccumulateGates;
-Gates.MultiplicationGates = MultiplicationGates;
-Gates.MultiplyAccumulateGates = MultiplyAccumulateGates;
-Gates.NeGate = NeGate;
-Gates.OtherX = VariousXGates;
-Gates.OtherY = VariousYGates;
-Gates.OtherZ = VariousZGates;
-Gates.ParametrizedRotationGates = ParametrizedRotationGates;
-Gates.PhaseGradientGates = PhaseGradientGates;
-Gates.PivotFlipGates = PivotFlipGates;
-Gates.PostSelectionGates = PostSelectionGates;
-Gates.Powering = PoweringGates;
-Gates.QuarterTurns = QuarterTurnGates;
-Gates.ReverseBitsGateFamily = ReverseBitsGateFamily;
-Gates.ResetGates = ResetGates;
-Gates.Detectors = Detectors;
-Gates.SpacerGate = SpacerGate;
-Gates.WireCutGate = WireCutGate;
-Gates.UniversalNot = UniversalNotGate;
-Gates.XorGates = XorGates;
-Gates.ZeroGate = ZeroGate;
+Gates.Special = {Measurement: MeasurementGate, XMeasurement: XMeasurementGate, BellMeasurement: BellMeasurementGate, WireCut: WireCutGate, SwapHalf: SwapGateHalf};
+Gates.Displays = {AmplitudeDisplayFamily, ProbabilityDisplayFamily, SampleDisplayFamily, DensityMatrixDisplayFamily, BlochSphereDisplay};
+Gates.Arithmetic = ArithmeticGates; Gates.BitCountGates = BitCountGates; Gates.ComparisonGates = ComparisonGates; Gates.Controls = Controls; Gates.CountingGates = CountingGates; Gates.CycleBitsGates = CycleBitsGates;
+Gates.Displays.DensityMatrixDisplay = DensityMatrixDisplayFamily.ofSize(1); Gates.Displays.DensityMatrixDisplay2 = DensityMatrixDisplayFamily.ofSize(2); Gates.Displays.ChanceDisplay = Gates.Displays.ProbabilityDisplayFamily.ofSize(1);
+Gates.ErrorInjection = ErrorInjectionGate; Gates.Exponentiating = ExponentiatingGates; Gates.FourierTransformGates = FourierTransformGates; Gates.HalfTurns = HalfTurnGates;
+Gates.ImaginaryGate = ImaginaryGate; Gates.AntiImaginaryGate = AntiImaginaryGate; Gates.SqrtImaginaryGate = SqrtImaginaryGate; Gates.AntiSqrtImaginaryGate = AntiSqrtImaginaryGate;
+Gates.IncrementGates = IncrementGates; Gates.InputGates = InputGates; Gates.InterleaveBitsGates = InterleaveBitsGates; Gates.ModularIncrementGates = ModularIncrementGates; Gates.ModularAdditionGates = ModularAdditionGates; Gates.ModularMultiplicationGates = ModularMultiplicationGates; Gates.ModularMultiplyAccumulateGates = ModularMultiplyAccumulateGates;
+Gates.MultiplicationGates = MultiplicationGates; Gates.MultiplyAccumulateGates = MultiplyAccumulateGates; Gates.NeGate = NeGate; Gates.OtherX = VariousXGates; Gates.OtherY = VariousYGates; Gates.OtherZ = VariousZGates; Gates.ParametrizedRotationGates = ParametrizedRotationGates; Gates.PhaseGradientGates = PhaseGradientGates; Gates.PivotFlipGates = PivotFlipGates; Gates.PostSelectionGates = PostSelectionGates; Gates.Powering = PoweringGates; Gates.QuarterTurns = QuarterTurnGates; Gates.ReverseBitsGateFamily = ReverseBitsGateFamily; Gates.ResetGates = ResetGates; Gates.Detectors = Detectors; Gates.SpacerGate = SpacerGate; Gates.WireCutGate = WireCutGate; Gates.UniversalNot = UniversalNotGate; Gates.XorGates = XorGates; Gates.ZeroGate = ZeroGate;
 
 Gates.KnownToSerializer = [
-    ...Controls.all,
-    ...InputGates.all,
-    MeasurementGate,
-    XMeasurementGate,
-    BellMeasurementGate,
-    SwapGateHalf,
-    SpacerGate,
-    WireCutGate,
-    UniversalNotGate,
-    ErrorInjectionGate,
-    ZeroGate,
-    NeGate,
-    ImaginaryGate,
-    AntiImaginaryGate,
-    SqrtImaginaryGate,
-    AntiSqrtImaginaryGate,
-    ...AmplitudeDisplayFamily.all,
-    ...ProbabilityDisplayFamily.all,
-    ...SampleDisplayFamily.all,
-    ...DensityMatrixDisplayFamily.all,
-    BlochSphereDisplay,
-    ...ArithmeticGates.all,
-    ...BitCountGates.all,
-    ...ComparisonGates.all,
-    ...CountingGates.all,
-    ...CycleBitsGates.all,
-    ...Detectors.all,
-    ...ExponentiatingGates.all,
-    ...FourierTransformGates.all,
-    ...HalfTurnGates.all,
-    ...IncrementGates.all,
-    ...InterleaveBitsGates.all,
-    ...ModularAdditionGates.all,
-    ...ModularIncrementGates.all,
-    ...ModularMultiplicationGates.all,
-    ...ModularMultiplyAccumulateGates.all,
-    ...MultiplicationGates.all,
-    ...MultiplyAccumulateGates.all,
-    ...QuarterTurnGates.all,
-    ...ParametrizedRotationGates.all,
-    ...PhaseGradientGates.all,
-    ...PivotFlipGates.all,
-    ...PostSelectionGates.all,
-    ...IsingGates.all,
-    ...PoweringGates.all,
-    ...ReverseBitsGateFamily.all,
-    ...ResetGates.all,
-    ...VariousXGates.all,
-    ...VariousYGates.all,
-    ...VariousZGates.all,
-    ...XorGates.all
+    ...Controls.all, ...InputGates.all, MeasurementGate, XMeasurementGate, BellMeasurementGate, SwapGateHalf, SpacerGate, WireCutGate, UniversalNotGate, ErrorInjectionGate, ZeroGate, NeGate, ImaginaryGate, AntiImaginaryGate, SqrtImaginaryGate, AntiSqrtImaginaryGate,
+    ...AmplitudeDisplayFamily.all, ...ProbabilityDisplayFamily.all, ...SampleDisplayFamily.all, ...DensityMatrixDisplayFamily.all, BlochSphereDisplay, ...ArithmeticGates.all, ...BitCountGates.all, ...ComparisonGates.all, ...CountingGates.all, ...CycleBitsGates.all, ...Detectors.all, ...ExponentiatingGates.all, ...FourierTransformGates.all, ...HalfTurnGates.all, ...IncrementGates.all, ...InterleaveBitsGates.all, ...ModularAdditionGates.all, ...ModularIncrementGates.all, ...ModularMultiplicationGates.all, ...ModularMultiplyAccumulateGates.all, ...MultiplicationGates.all, ...MultiplyAccumulateGates.all, ...QuarterTurnGates.all, ...ParametrizedRotationGates.all, ...PhaseGradientGates.all, ...PivotFlipGates.all, ...PostSelectionGates.all, ...IsingGates.all, ...PoweringGates.all, ...ReverseBitsGateFamily.all, ...ResetGates.all, ...VariousXGates.all, ...VariousYGates.all, ...VariousZGates.all, ...XorGates.all
 ];
-
 let gatesById = seq(Gates.KnownToSerializer).keyedBy(g => g.serializedId);
-Gates.findKnownGateById = (id, customGateSet) => {
-    return gatesById.has(id) ? gatesById.get(id) : customGateSet.findGateWithSerializedId(id);
-};
+Gates.findKnownGateById = (id, customGateSet) => gatesById.has(id) ? gatesById.get(id) : customGateSet.findGateWithSerializedId(id);
 
 Gates.TopToolboxGroups = [
-    {
-        hint: "Probes",
-        gates: [
-            MeasurementGate,
-            XMeasurementGate,
-            BellMeasurementGate
-        ]
-    },
-    {
-        hint: "Post-selection",
-        gates: [
-            PostSelectionGates.PostSelectOff,
-            PostSelectionGates.PostSelectOn,
-            PostSelectionGates.PostSelectAntiX,
-            PostSelectionGates.PostSelectX,
-            PostSelectionGates.PostSelectAntiY,
-            PostSelectionGates.PostSelectY
-        ]
-    },
-    {
-        hint: "Displays",
-        gates: [
-            BlochSphereDisplay,
-            ProbabilityDisplayFamily.ofSize(1),
-            AmplitudeDisplayFamily.ofSize(2)
-        ]
-    },
-    {
-        hint: "Formulaic",
-        gates: [
-            ParametrizedRotationGates.FormulaicRotationRz,
-            ParametrizedRotationGates.FormulaicRotationRy,
-            ParametrizedRotationGates.FormulaicRotationRx
-        ]
-    },
-    {
-        hint: "Ising",
-        gates: [
-            IsingGates.XX,
-            IsingGates.YY,
-            IsingGates.ZZ
-        ]
-    },
-    {
-        hint: "3-qubit Ising",
-        gates: [
-            IsingGates.XXX,
-            IsingGates.YYY,
-            IsingGates.ZZZ
-        ]
-    },
-    {
-        hint: "Gadgets",
-        gates: [
-            WireCutGate,
-            CycleBitsGates.CycleBitsFamily.ofSize(2),
-            CycleBitsGates.ReverseCycleBitsFamily.ofSize(2)
-        ]
-    },
+    {hint: "Probes", gates: [MeasurementGate, XMeasurementGate, BellMeasurementGate]},
+    {hint: "Post-selection", gates: [PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn, PostSelectionGates.PostSelectAntiX, PostSelectionGates.PostSelectX, PostSelectionGates.PostSelectAntiY, PostSelectionGates.PostSelectY]},
+    {hint: "Displays", gates: [BlochSphereDisplay, ProbabilityDisplayFamily.ofSize(1), AmplitudeDisplayFamily.ofSize(2)]},
+    {hint: "Formulaic", gates: [
+        ParametrizedRotationGates.FormulaicRotationRx,
+        ParametrizedRotationGates.FormulaicRotationRy,
+        ParametrizedRotationGates.FormulaicRotationRz
+    ]},
+    {hint: "Ising", gates: [IsingGates.XX, IsingGates.YY, IsingGates.ZZ]},
+    {hint: "3-qubit Ising", gates: [IsingGates.XXX, IsingGates.YYY, IsingGates.ZZZ]},
+    {hint: "Gadgets", gates: [WireCutGate, CycleBitsGates.CycleBitsFamily.ofSize(2), CycleBitsGates.ReverseCycleBitsFamily.ofSize(2)]},
 ];
-
 Gates.BottomToolboxGroups = [];
 
-const INITIAL_STATES_TO_GATES = new Map([
-    [undefined, []],
-    ['1', [Gates.HalfTurns.X]],
-    ['+', [Gates.HalfTurns.H]],
-    ['-', [Gates.HalfTurns.H, Gates.HalfTurns.Z]],
-    ['i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZForward]],
-    ['-i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZBackward]]
-]);
-
+const INITIAL_STATES_TO_GATES = new Map([[undefined, []], ['1', [Gates.HalfTurns.X]], ['+', [Gates.HalfTurns.H]], ['-', [Gates.HalfTurns.H, Gates.HalfTurns.Z]], ['i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZForward]], ['-i', [Gates.HalfTurns.H, Gates.QuarterTurns.SqrtZBackward]]]);
 export {Gates, INITIAL_STATES_TO_GATES}
