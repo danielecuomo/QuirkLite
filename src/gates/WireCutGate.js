@@ -37,7 +37,7 @@ function drawWireCutGate(args) {
         trace.line(...c, ...d);
         trace.line(...e, ...f);
         trace.line(...g, ...h);
-    }).thenStroke('black', 2);
+    }).thenStroke('black', 1);
 }
 
 let WireCutGate = new GateBuilder().
