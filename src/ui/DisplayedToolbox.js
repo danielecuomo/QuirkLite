@@ -108,6 +108,8 @@ class DisplayedToolbox {
         let columns = 0;
         for (let i = 0; i < groupIndex; i++) {
             columns += DisplayedToolbox.isSingleColumnGroup(this.toolboxGroups[i]) ? 1 : 2;
+            // Add a small gap between adjacent tables without restoring empty columns.
+            columns += 0.25;
         }
         return columns;
     }
