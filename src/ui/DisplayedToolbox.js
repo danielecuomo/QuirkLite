@@ -45,6 +45,7 @@ class DisplayedToolbox {
 
     static isSingleColumnGroup(group) {
         return group.hint === 'Probes' ||
+            group.hint === 'Post-selection' ||
             group.hint === 'Displays' ||
             group.hint === 'Formulaic' ||
             group.hint === 'Ising' ||
