@@ -221,6 +221,14 @@ Gates.TopToolboxGroups = [
         ]
     },
     {
+        hint: "3-qubit Ising",
+        gates: [
+            IsingGates.XXX,
+            IsingGates.YYY,
+            IsingGates.ZZZ
+        ]
+    },
+    {
         hint: "Gadgets",
         gates: [
             WireCutGate,
