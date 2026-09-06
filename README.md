@@ -2,8 +2,6 @@
 
 **[Open QuirkLite](https://danielecuomo.github.io/QuirkLite/)**
 
-![Demo](assets/demo1.gif)
-
 QuirkLite is a lightweight, browser-based quantum circuit simulator derived from [Quirk](https://github.com/Strilanc/Quirk). It provides an interactive drag-and-drop interface for building and exploring small quantum circuits.
 
 ## Features
