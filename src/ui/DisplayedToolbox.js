@@ -104,6 +104,18 @@ class DisplayedToolbox {
             this._standardApperance);
     }
 
+    groupColumnOffset(groupIndex) {
+        let columns = 0;
+        for (let i = 0; i < groupIndex; i++) {
+            columns += DisplayedToolbox.isSingleColumnGroup(this.toolboxGroups[i]) ? 1 : 2;
+        }
+        return columns;
+    }
+
+    groupColumnCount(groupIndex) {
+        return DisplayedToolbox.isSingleColumnGroup(this.toolboxGroups[groupIndex]) ? 1 : 2;
+    }
+
     gateDrawRect(groupIndex, gateIndex) {
         let group = this.toolboxGroups[groupIndex];
         let singleColumn = DisplayedToolbox.isSingleColumnGroup(group);
@@ -111,8 +123,7 @@ class DisplayedToolbox {
         let dy = singleColumn ? gateIndex : Math.floor(gateIndex / 2);
 
         let x = Config.TOOLBOX_MARGIN_X +
-            dx * Config.TOOLBOX_GATE_SPAN +
-            groupIndex * Config.TOOLBOX_GROUP_SPAN;
+            (this.groupColumnOffset(groupIndex) + dx) * Config.TOOLBOX_GATE_SPAN;
         let y = this.top +
             (this.labelsOnTop ? Config.TOOLBOX_MARGIN_Y : 3) +
             dy * Config.TOOLBOX_GATE_SPAN;
@@ -127,15 +138,17 @@ class DisplayedToolbox {
     groupLabelRect(groupIndex) {
         if (this.labelsOnTop) {
             let r = this.gateDrawRect(groupIndex, 0);
-            let c = new Point(r.x + Config.TOOLBOX_GATE_SPAN - Config.TOOLBOX_GATE_SPACING / 2, r.y - 18);
-            return new Rect(c.x - Config.TOOLBOX_GATE_SPAN, c.y, Config.TOOLBOX_GATE_SPAN * 2, 20);
+            let width = this.groupColumnCount(groupIndex) * Config.TOOLBOX_GATE_SPAN;
+            let c = new Point(r.x + width/2 - Config.TOOLBOX_GATE_SPACING/2, r.y - 18);
+            return new Rect(c.x - width/2, c.y, width, 20);
         }
 
         let group = this.toolboxGroups[groupIndex];
         let lastGateIndex = DisplayedToolbox.isSingleColumnGroup(group) ? group.gates.length - 1 : this.groupHeight*2 - 2;
         let r = this.gateDrawRect(groupIndex, lastGateIndex);
-        let c = new Point(r.x + Config.TOOLBOX_GATE_SPAN - Config.TOOLBOX_GATE_SPACING / 2, r.bottom());
-        return new Rect(c.x - Config.TOOLBOX_GATE_SPAN, c.y+2, Config.TOOLBOX_GATE_SPAN * 2, 20);
+        let width = this.groupColumnCount(groupIndex) * Config.TOOLBOX_GATE_SPAN;
+        let c = new Point(r.x + Config.GATE_RADIUS*2/2, r.bottom());
+        return new Rect(c.x - width/2, c.y+2, width, 20);
     }
 
     curArea(maxWidth) {
@@ -178,7 +191,10 @@ class DisplayedToolbox {
     }
 
     desiredWidth() {
-        return this.gateDrawRect(this.toolboxGroups.length - 1, 5).right() + 5;
+        if (this.toolboxGroups.length === 0) return Config.TOOLBOX_MARGIN_X * 2;
+        let lastGroupIndex = this.toolboxGroups.length - 1;
+        let columns = this.groupColumnOffset(lastGroupIndex) + this.groupColumnCount(lastGroupIndex);
+        return Config.TOOLBOX_MARGIN_X + columns * Config.TOOLBOX_GATE_SPAN + 5;
     }
 
     desiredHeight() {
