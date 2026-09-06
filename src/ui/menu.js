@@ -30,6 +30,14 @@ function initMenu(revision, obsIsAnyOverlayShowing) {
     ghzAnchor.textContent = 'GHZ';
     nonLocalityAnchor.parentNode.insertBefore(ghzBreak, nonLocalityAnchor.nextSibling);
     nonLocalityAnchor.parentNode.insertBefore(ghzAnchor, ghzBreak.nextSibling);
+
+    const entanglementSwapBreak = document.createElement('br');
+    const entanglementSwapAnchor = /** @type {!HTMLAnchorElement} */ nonLocalityAnchor.cloneNode(true);
+    entanglementSwapAnchor.id = 'example-anchor-entanglement-swap';
+    entanglementSwapAnchor.href = '#circuit={%22cols%22:[[%22IsingXX%22,1,%22IsingXX%22],[1,%22Rzft%22,1,%22Rzft%22],[%22Chance4%22],[1,%22MeasureB%22],[1,%22|0⟩⟨0|%22,%22|0⟩⟨0|%22],[1,%22WireCut%22,%22WireCut%22],[%22Chance2%22]]}';
+    entanglementSwapAnchor.textContent = 'Entanglement swap';
+    ghzAnchor.parentNode.insertBefore(entanglementSwapBreak, ghzAnchor.nextSibling);
+    ghzAnchor.parentNode.insertBefore(entanglementSwapAnchor, entanglementSwapBreak.nextSibling);
 }
 
 export {initMenu, obsMenuIsShowing, closeMenu}
