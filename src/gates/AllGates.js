@@ -69,7 +69,6 @@ import {seq} from "../base/Seq.js"
 
 let Gates = {};
 
-/** Gates that have special behavior requiring custom code / logic to handle. */
 Gates.Special = {
     Measurement: MeasurementGate,
     XMeasurement: XMeasurementGate,
@@ -77,10 +76,6 @@ Gates.Special = {
     WireCut: WireCutGate,
     SwapHalf: SwapGateHalf
 };
-/**
- * Gates that display information without affecting the state.
- * (In reality these would require multiple runs of the circuit to do tomography.)
- */
 Gates.Displays = {
     AmplitudeDisplayFamily: AmplitudeDisplayFamily,
     ProbabilityDisplayFamily: ProbabilityDisplayFamily,
@@ -133,7 +128,6 @@ Gates.UniversalNot = UniversalNotGate;
 Gates.XorGates = XorGates;
 Gates.ZeroGate = ZeroGate;
 
-/** @type {!Array.<!Gate>} */
 Gates.KnownToSerializer = [
     ...Controls.all,
     ...InputGates.all,
@@ -151,13 +145,11 @@ Gates.KnownToSerializer = [
     AntiImaginaryGate,
     SqrtImaginaryGate,
     AntiSqrtImaginaryGate,
-
     ...AmplitudeDisplayFamily.all,
     ...ProbabilityDisplayFamily.all,
     ...SampleDisplayFamily.all,
     ...DensityMatrixDisplayFamily.all,
     BlochSphereDisplay,
-
     ...ArithmeticGates.all,
     ...BitCountGates.all,
     ...ComparisonGates.all,
@@ -191,16 +183,10 @@ Gates.KnownToSerializer = [
 ];
 
 let gatesById = seq(Gates.KnownToSerializer).keyedBy(g => g.serializedId);
-/**
- * @param {!String} id
- * @param {!CustomGateSet} customGateSet
- * @returns {undefined|!Gate}
- */
 Gates.findKnownGateById = (id, customGateSet) => {
     return gatesById.has(id) ? gatesById.get(id) : customGateSet.findGateWithSerializedId(id);
 };
 
-/** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
 Gates.TopToolboxGroups = [
     {
         hint: "Probes",
@@ -219,30 +205,6 @@ Gates.TopToolboxGroups = [
         ]
     },
     {
-        hint: "Half Turns",
-        gates: [
-            HalfTurnGates.Z, undefined,
-            HalfTurnGates.Y, undefined,
-            HalfTurnGates.X, undefined
-        ]
-    },
-    {
-        hint: "Quarter Turns",
-        gates: [
-            QuarterTurnGates.SqrtZForward, QuarterTurnGates.SqrtZBackward,
-            QuarterTurnGates.SqrtYForward, QuarterTurnGates.SqrtYBackward,
-            QuarterTurnGates.SqrtXForward, QuarterTurnGates.SqrtXBackward
-        ]
-    },
-    {
-        hint: "Eighth Turns",
-        gates: [
-            VariousZGates.Z4, VariousZGates.Z4i,
-            VariousYGates.Y4, VariousYGates.Y4i,
-            VariousXGates.X4, VariousXGates.X4i,
-        ]
-    },
-    {
         hint: "Formulaic",
         gates: [
             ParametrizedRotationGates.FormulaicRotationRz,
@@ -253,9 +215,7 @@ Gates.TopToolboxGroups = [
     {
         hint: "Ising",
         gates: [
-            IsingGates.XX,
-            IsingGates.YY,
-            IsingGates.ZZ
+            IsingGates.XX
         ]
     },
     {
@@ -268,10 +228,8 @@ Gates.TopToolboxGroups = [
     },
 ];
 
-/** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
 Gates.BottomToolboxGroups = [];
 
-/** @type {!Map.<undefined|!string, !Array.<!Gate>>} */
 const INITIAL_STATES_TO_GATES = new Map([
     [undefined, []],
     ['1', [Gates.HalfTurns.X]],
