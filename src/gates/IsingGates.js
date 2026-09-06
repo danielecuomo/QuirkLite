@@ -14,12 +14,6 @@ import {Config} from "../Config.js"
 
 let IsingGates = {};
 
-/**
- * @param {!string} formula
- * @param {undefined|!number} time
- * @param {!boolean} warn
- * @returns {undefined|!number}
- */
 function parseTimeFormula(formula, time, warn) {
     let tokenMap = new Map([...PARSE_COMPLEX_TOKEN_MAP_RAD.entries()]);
     if (time !== undefined) {
@@ -28,7 +22,7 @@ function parseTimeFormula(formula, time, warn) {
     try {
         let angle = Complex.from(parseFormula(formula, tokenMap));
         if (Math.abs(angle.imag) > 0.0001) {
-            throw new Error(`Non-real angle: ${formula} = ${angle}`);
+            throw new Error(`Non-real angle: ${formula} = ${Complex.from(parseFormula(formula, tokenMap))}`);
         }
         return angle.real;
     } catch (ex) {
@@ -39,10 +33,6 @@ function parseTimeFormula(formula, time, warn) {
     }
 }
 
-/**
- * @param {!GateCheckArgs} args
- * @returns {undefined|!string}
- */
 function badFormulaDetector(args) {
     if (typeof args.gate.param === 'number') {
         return args.gate.param;
@@ -58,10 +48,6 @@ function badFormulaDetector(args) {
     }
 }
 
-/**
- * @param {!string} quantityName
- * @returns {!function(gate: !Gate): !Gate}
- */
 function angleClicker(quantityName) {
     return oldGate => {
         let txt = prompt(
@@ -82,10 +68,6 @@ function angleClicker(quantityName) {
     };
 }
 
-/**
- * @param {!string} pattern
- * @returns {!function(args: !GateDrawParams)}
- */
 function formulaicIsingDrawer(pattern) {
     return args => {
         GatePainting.paintBackground(args, Config.TIME_DEPENDENT_HIGHLIGHT_COLOR);
@@ -99,11 +81,6 @@ function formulaicIsingDrawer(pattern) {
     };
 }
 
-/**
- * @param {!string} axis
- * @param {!Matrix} pauli
- * @returns {!Gate}
- */
 const makeIsingGate = (axis, pauli) => {
     let pp = pauli.tensorProduct(pauli);
     let matrixForAngle = angle => {
@@ -114,7 +91,7 @@ const makeIsingGate = (axis, pauli) => {
 
     let gate = new GateBuilder().
         setHeight(2).
-        setSerializedIdAndSymbol(`Ising${axis}${axis}ft`, `${axis}${axis}_f(t)`).
+        setSerializedIdAndSymbol(`Ising${axis}${axis}`, `${axis}${axis}_f(t)`).
         setTitle(`Formula Ising ${axis}${axis} Gate`).
         setBlurb(`Applies exp(-i f(t) ${axis}⊗${axis}).`).
         setDrawer(formulaicIsingDrawer(`${axis}${axis}_f(t)`)).
