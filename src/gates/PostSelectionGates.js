@@ -22,7 +22,13 @@ import {Matrix} from "../math/Matrix.js"
 let PostSelectionGates = {};
 
 let POST_SELECT_DRAWER = args => {
-    if (args.isInToolbox  || args.isHighlighted) {
+    if (args.isInToolbox) {
+        GatePainting.paintBackground(args);
+        GatePainting.paintOutline(args);
+        // In the toolbox, show the bra that identifies the selected state.
+        let symbol = args.gate === PostSelectionGates.PostSelectOff ? "<0|" : "<1|";
+        GatePainting.paintGateSymbol(args, symbol);
+    } else if (args.isHighlighted) {
         GatePainting.DEFAULT_DRAWER(args);
     } else {
         args.painter.fillRect(args.rect, 'white');
