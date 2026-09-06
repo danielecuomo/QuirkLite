@@ -22,6 +22,12 @@ function initMenu(revision, obsIsAnyOverlayShowing) {
     teleportAnchor.href = '#circuit={%22cols%22:[[1,%22IsingXX%22],[1,1,%22Z^%C2%BD%22],[1,%22Chance2%22],[{%22id%22:%22Ryft%22,%22arg%22:%22pi%20t%22}],[%22Bloch%22],[%22MeasureB%22],[%22|0⟩⟨0|%22,%22|0⟩⟨0|%22,%22Bloch%22],[%22WireCut%22,%22WireCut%22]]}';
     const nonLocalityAnchor = /** @type {!HTMLAnchorElement} */ document.getElementById('example-anchor-non-locality');
     nonLocalityAnchor.href = '#circuit={%22cols%22:[[1,%22IsingXX%22],[1,%22Chance2%22],[%22%3C%3C2%22,1,%22%3E%3E2%22],[1,%22WireCut%22,%22WireCut%22],[%22Chance2%22]]}';
+
+    const ghzAnchor = /** @type {!HTMLAnchorElement} */ nonLocalityAnchor.cloneNode(true);
+    ghzAnchor.id = 'example-anchor-ghz';
+    ghzAnchor.href = '#circuit={%22cols%22:[[%22IsingXXX%22],[%22Chance3%22]]}';
+    ghzAnchor.textContent = 'GHZ';
+    nonLocalityAnchor.parentNode.insertBefore(ghzAnchor, nonLocalityAnchor.nextSibling);
 }
 
 export {initMenu, obsMenuIsShowing, closeMenu}
