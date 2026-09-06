@@ -17,13 +17,11 @@
 import {CachablePainting} from "../draw/CachablePainting.js"
 import {CircuitStats} from "../circuit/CircuitStats.js"
 import {Config} from "../Config.js"
-import {DisplayedCircuit} from "../ui/DisplayedCircuit.js"
 import {GateDrawParams} from "../draw/GateDrawParams.js"
 import {GatePainting} from "../draw/GatePainting.js"
 import {Hand} from "../ui/Hand.js"
 import {MysteryGateSymbol, MysteryGateMaker} from "../gates/Joke_MysteryGate.js"
 import {Rect} from "../math/Rect.js"
-import {Painter} from "../draw/Painter.js"
 import {Point} from "../math/Point.js"
 import {seq} from "../base/Seq.js"
 import {WidgetPainter} from "../draw/WidgetPainter.js"
@@ -45,7 +43,10 @@ class DisplayedToolbox {
     }
 
     static isSingleColumnGroup(group) {
-        return group.hint === 'Displays' || group.hint === 'Formulaic' || group.hint === 'Ising' || group.hint === 'Gadgets';
+        return group.hint === 'Displays' ||
+            group.hint === 'Formulaic' ||
+            group.hint === 'Ising' ||
+            group.hint === 'Gadgets';
     }
 
     constructor(
@@ -55,20 +56,11 @@ class DisplayedToolbox {
             labelsOnTop,
             originalGroups=undefined,
             standardAppearance=undefined) {
-        /** @type {!String} */
         this.name = name;
-        /** @type {!number} */
         this.top = top;
-        /** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
         this.toolboxGroups = toolboxGroups;
-        /** @type {!boolean} */
         this.labelsOnTop = labelsOnTop;
-        /** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
         this._originalGroups = originalGroups || this.toolboxGroups;
-        /**
-         * @type {!CachablePainting}
-         * @private
-         */
         this._standardApperance = standardAppearance || new CachablePainting(
             () => ({width: this.desiredWidth(), height: this.desiredHeight()}),
             painter => {
@@ -78,7 +70,6 @@ class DisplayedToolbox {
                 painter.ctx.restore();
             });
 
-        /** @type {!int} */
         this.groupHeight = 1;
         for (let group of toolboxGroups) {
             let h = Math.ceil(group.gates.length / 2);
@@ -144,6 +135,10 @@ class DisplayedToolbox {
         return new Rect(c.x - Config.TOOLBOX_GATE_SPAN, c.y+2, Config.TOOLBOX_GATE_SPAN * 2, 20);
     }
 
+    curArea(maxWidth) {
+        return new Rect(0, this.top, maxWidth, this.desiredHeight());
+    }
+
     findGateAt(pt) {
         if (pt === undefined) {
             return undefined;
@@ -179,27 +174,26 @@ class DisplayedToolbox {
             this._standardApperance);
     }
 
-    desiredSize(maxWidth=Infinity) {
-        let width = this.desiredWidth();
-        let height = this.desiredHeight();
-        if (width > maxWidth) {
-            width = maxWidth;
-        }
-        return {width, height};
-    }
-
     desiredWidth() {
-        return Config.TOOLBOX_MARGIN_X * 2 + this.toolboxGroups.length * Config.TOOLBOX_GROUP_SPAN;
+        return this.gateDrawRect(this.toolboxGroups.length - 1, 5).right() + 5;
     }
 
     desiredHeight() {
-        return Config.TOOLBOX_MARGIN_Y * 2 + this.groupHeight * Config.TOOLBOX_GATE_SPAN + 22;
+        return (1 + this.groupHeight) * (Config.GATE_RADIUS * 2 + 2) - Config.GATE_RADIUS;
     }
 
     _paintStandardContents(painter) {
         for (let groupIndex = 0; groupIndex < this.toolboxGroups.length; groupIndex++) {
             this._paintGatesInGroup(painter, Hand.EMPTY, groupIndex);
         }
+
+        let r = this.curArea(Config.TOOLBOX_MARGIN_X);
+        let {x, y} = r.center();
+        painter.ctx.save();
+        painter.ctx.translate(x, y);
+        painter.ctx.rotate(-Math.PI/2);
+        painter.printLine(this.name, new Rect(-r.h / 2, -r.w / 2, r.h, r.w), 0.5, 'black', 24);
+        painter.ctx.restore();
     }
 
     _paintGatesInGroup(painter, hand, groupIndex) {
@@ -248,7 +242,7 @@ class DisplayedToolbox {
     }
 
     paint(painter, stats, hand) {
-        painter.fillRect(this.gateDrawRect(0, 0).inflate(Config.TOOLBOX_MARGIN_X), Config.BACKGROUND_COLOR_TOOLBOX);
+        painter.fillRect(this.curArea(painter.canvas.width), Config.BACKGROUND_COLOR_TOOLBOX);
         this._standardApperance.paint(0, this.top, painter);
         this._paintDeviations(painter, stats, hand);
     }
