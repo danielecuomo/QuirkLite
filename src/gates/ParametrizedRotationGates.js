@@ -27,12 +27,6 @@ import {Config} from "../Config.js";
 
 let ParametrizedRotationGates = {};
 
-/**
- * @param {!string} pattern
- * @param {!int} xyz
- * @param {!number} tScale
- * @returns {!function(args: !GateDrawParams)}
- */
 function configurableRotationDrawer(pattern, xyz, tScale) {
     let xScale = [1, 0.5, -1][xyz];
     let yScale = [1, 1, -0.5][xyz];
@@ -54,9 +48,6 @@ function configurableRotationDrawer(pattern, xyz, tScale) {
     };
 }
 
-/**
- * @param {!GateDrawParams} args
- */
 function exponent_to_A_len_painter(args) {
     let v = args.getGateContext('Input Range A');
     let denom_exponent = v === undefined ? 'ⁿ' : Util.digits_to_superscript_digits('' + v.length);
@@ -77,7 +68,6 @@ const X_TO_A_SHADER = ketShader(
         float s = sin(angle) * 0.5;
         vec2 u = vec2(0.5 + c, s);
         vec2 v = vec2(0.5 - c, -s);
-        // multiply state by the matrix [[u, v], [v, u]]
         vec2 amp2 = inp(1.0-out_id);
         return cmul(u, amp) + cmul(v, amp2);
     `);
@@ -93,7 +83,6 @@ const Y_TO_A_SHADER = ketShader(
         float s = sin(angle) * 0.5;
         vec2 u = vec2(c + 0.5, s);
         vec2 v = vec2(s, 0.5 - c);
-        // multiply state by the matrix [[u, v], [-v, u]]
         vec2 amp2 = inp(1.0-out_id);
         vec2 vs = v * (-1.0 + 2.0 * out_id);
         return cmul(u, amp) + cmul(vs, amp2);
@@ -201,57 +190,35 @@ ParametrizedRotationGates.ZToMinusA = new GateBuilder().
     promiseEffectOnlyPhases().
     gate;
 
-/**
- * @param {!string} formula
- * @param {undefined|!number} time
- * @param {!boolean} warn
- * @returns {undefined|!number}
- */
 function parseTimeFormula(formula, time, warn) {
     let tokenMap = new Map([...PARSE_COMPLEX_TOKEN_MAP_RAD.entries()]);
-    if (time !== undefined) {
-        tokenMap.set('t', time);
-    }
+    tokenMap.set('pi', Math.PI);
+    tokenMap.set('π', Math.PI);
+    if (time !== undefined) tokenMap.set('t', time);
     try {
         let angle = Complex.from(parseFormula(formula, tokenMap));
-        if (Math.abs(angle.imag) > 0.0001) {
-            throw new Error(`Non-real angle: ${formula} = ${angle}`);
-        }
+        if (Math.abs(angle.imag) > 0.0001) throw new Error(`Non-real angle: ${formula} = ${angle}`);
         return angle.real;
     } catch (ex) {
-        if (warn) {
-            console.warn(ex);
-        }
+        if (warn) console.warn(ex);
         return undefined;
     }
 }
 
-/**
- * @param {!GateCheckArgs} args
- * @returns {undefined|!string}
- */
 function badFormulaDetector(args) {
-    if (typeof args.gate.param === 'number') {
-        return args.gate.param;
-    } else if (typeof args.gate.param === 'string') {
+    if (typeof args.gate.param === 'number') return args.gate.param;
+    if (typeof args.gate.param === 'string') {
         for (let t of [0.01, 0.63, 0.98]) {
-            if (parseTimeFormula(args.gate.param, t, false) === undefined) {
-                return 'bad\nformula';
-            }
+            if (parseTimeFormula(args.gate.param, t, false) === undefined) return 'bad\nformula';
         }
         return undefined;
-    } else {
-        return 'bad\nvalue';
     }
+    return 'bad\nvalue';
 }
 
-/**
- * @param {!Gate} gate
- */
 function updateUsingFormula(gate) {
     let stable = parseTimeFormula(gate.param, undefined, false) !== undefined;
     gate._stableDuration = stable ? Infinity : 0;
-
     if (typeof gate.param === 'string') {
         gate.width = Math.ceil((gate.param.length+1)/5);
         gate.alternate = gate._copy();
@@ -267,10 +234,10 @@ function updateUsingFormula(gate) {
     }
 }
 
-/**
- * @param {!string} quantityName
- * @returns {!function(gate: !Gate): !Gate}
- */
+function displayFormula(formula) {
+    return typeof formula === 'string' ? formula.replace(/\bpi\b/g, 'π') : formula;
+}
+
 function angleClicker(quantityName) {
     return oldGate => {
         let txt = prompt(
@@ -284,9 +251,7 @@ function angleClicker(quantityName) {
             "Available functions: cos, sin, acos, asin, tan, atan, ln, sqrt, exp\n" +
             "Available operators: + * / - ^",
             '' + oldGate.param);
-        if (txt === null || txt.trim() === '') {
-            return oldGate;
-        }
+        if (txt === null || txt.trim() === '') return oldGate;
         return oldGate.withParam(txt);
     };
 }
@@ -302,7 +267,7 @@ ParametrizedRotationGates.FormulaicRotationRx = new GateBuilder().
     setEffectToTimeVaryingMatrix((t, formula) => XExp((parseTimeFormula(formula, t*2-1, true) || 0) / Math.PI / 4)).
     setWithParamPropertyRecomputeFunc(updateUsingFormula).
     promiseEffectIsUnitary().
-    gate.withParam('pi t^2');
+    gate.withParam('pi/2');
 
 ParametrizedRotationGates.FormulaicRotationRy = new GateBuilder().
     setSerializedIdAndSymbol("Ryft").
@@ -315,7 +280,7 @@ ParametrizedRotationGates.FormulaicRotationRy = new GateBuilder().
     setEffectToTimeVaryingMatrix((t, formula) => YExp((parseTimeFormula(formula, t*2-1, true) || 0) / Math.PI / 4)).
     setWithParamPropertyRecomputeFunc(updateUsingFormula).
     promiseEffectIsUnitary().
-    gate.withParam('pi t^2');
+    gate.withParam('pi/2');
 
 ParametrizedRotationGates.FormulaicRotationRz = new GateBuilder().
     setSerializedIdAndSymbol("Rzft").
@@ -328,9 +293,9 @@ ParametrizedRotationGates.FormulaicRotationRz = new GateBuilder().
     setEffectToTimeVaryingMatrix((t, formula) => ZExp((parseTimeFormula(formula, t*2-1, true) || 0) / Math.PI / 4)).
     setWithParamPropertyRecomputeFunc(updateUsingFormula).
     promiseEffectOnlyPhases().
-    gate.withParam('pi t^2');
+    gate.withParam('pi/2');
 
-ParametrizedRotationGates.all =[
+ParametrizedRotationGates.all = [
     ParametrizedRotationGates.XToA,
     ParametrizedRotationGates.XToMinusA,
     ParametrizedRotationGates.YToA,
