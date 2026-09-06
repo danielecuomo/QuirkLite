@@ -45,36 +45,6 @@ class GateDrawParams {
                 focusPoints,
                 customStatsForCircuitPos,
                 toolboxFillColor=undefined) {
-        // Older QuirkLite toolbox drawing code used a shortened argument
-        // layout: (painter, gate, rect, ..., inToolbox, fillColor, highlight).
-        // Normalize that layout here so malformed toolbox calls cannot leave
-        // rect/gate undefined while the normal GateDrawParams API remains
-        // unchanged.
-        if (gate === undefined &&
-                isInToolbox !== null &&
-                typeof isInToolbox === 'object' &&
-                isInToolbox.x !== undefined &&
-                isInToolbox.y !== undefined &&
-                isInToolbox.w !== undefined &&
-                isInToolbox.h !== undefined) {
-            let legacyGate = hand;
-            let legacyRect = isInToolbox;
-            let legacyHighlight = focusPoints === true;
-            let legacyToolboxFillColor = positionInCircuit;
-            hand = undefined;
-            isInToolbox = true;
-            isHighlighted = legacyHighlight;
-            isResizeShowing = false;
-            isResizeHighlighted = false;
-            rect = legacyRect;
-            gate = legacyGate;
-            stats = undefined;
-            positionInCircuit = undefined;
-            focusPoints = [];
-            customStatsForCircuitPos = undefined;
-            toolboxFillColor = legacyToolboxFillColor;
-        }
-
         /** @type {!Painter} */
         this.painter = painter;
         /** @type {!Hand} */
