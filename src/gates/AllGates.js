@@ -191,9 +191,20 @@ Gates.TopToolboxGroups = [
     {
         hint: "Probes",
         gates: [
-            MeasurementGate,                  XMeasurementGate,
-            BellMeasurementGate,
-            PostSelectionGates.PostSelectOff, PostSelectionGates.PostSelectOn
+            MeasurementGate,
+            XMeasurementGate,
+            BellMeasurementGate
+        ]
+    },
+    {
+        hint: "Post-selection",
+        gates: [
+            PostSelectionGates.PostSelectOff,
+            PostSelectionGates.PostSelectOn,
+            PostSelectionGates.PostSelectAntiX,
+            PostSelectionGates.PostSelectX,
+            PostSelectionGates.PostSelectAntiY,
+            PostSelectionGates.PostSelectY
         ]
     },
     {
