@@ -19,15 +19,8 @@ import {GateBuilder} from "../circuit/Gate.js"
 import {GatePainting} from "../draw/GatePainting.js"
 import {MathPainter} from "../draw/MathPainter.js"
 import {Point} from "../math/Point.js"
+import {Matrix} from "../math/Matrix.js"
 
-/**
- * @param {!Painter} painter
- * @param {!Rect} drawArea
- * @param {!number} x
- * @param {!number} y
- * @param {!number} z
- * @param {!Array.<!Point>} focusPoints
- */
 function _paintBlochSphereDisplay_tooltips(
         painter,
         drawArea,
@@ -57,14 +50,6 @@ function _paintBlochSphereDisplay_tooltips(
         `x:${forceSign(-x)}, y:${forceSign(y)}, z:${forceSign(-z)}`);
 }
 
-/**
- * @param {!Painter} painter
- * @param {!number} x
- * @param {!number} y
- * @param {!number} z
- * @param {!Rect} drawArea
- * @param {!string=} fillColor
- */
 function _paintBlochSphereDisplay_indicator(
         painter,
         x,
@@ -79,7 +64,6 @@ function _paintBlochSphereDisplay_indicator(
     let p = c.plus(dx.times(x)).plus(dy.times(y)).plus(dz.times(z));
     let r = 3.8 / (1 + x / 6);
 
-    // Draw state indicators (in not-quite-correct 3d).
     painter.strokeLine(c, p, 'black', 1.5);
     painter.fillCircle(p, r, fillColor);
 
@@ -90,21 +74,12 @@ function _paintBlochSphereDisplay_indicator(
 
     painter.strokeCircle(p, r, 'black');
 
-    // Show depth by lerping the line from overlaying to being overlayd by the ball.
     painter.ctx.save();
     painter.ctx.globalAlpha *= Math.min(1, Math.max(0, 0.5+x*5));
     painter.strokeLine(c, p, 'black', 2);
     painter.ctx.restore();
 }
 
-/**
- * @param {!Painter} painter
- * @param {!Matrix} qubitDensityMatrix
- * @param {!Rect} drawArea
- * @param {!Array.<!Point>=} focusPoints
- * @param {!string=} backgroundColor
- * @param {!string=} fillColor
- */
 function paintBlochSphereDisplay(
         painter,
         qubitDensityMatrix,
@@ -116,7 +91,6 @@ function paintBlochSphereDisplay(
     let u = Math.min(drawArea.w, drawArea.h) / 2;
     let {dx, dy, dz} = MathPainter.coordinateSystem(u);
 
-    // Draw sphere and axis lines (in not-quite-proper 3d).
     painter.fillCircle(c, u, backgroundColor);
     painter.trace(trace => {
         trace.circle(c.x, c.y, u);
@@ -138,16 +112,28 @@ function paintBlochSphereDisplay(
     _paintBlochSphereDisplay_tooltips(painter, drawArea, x, y, z, focusPoints);
 }
 
+// A fixed |+> state used only for the toolbox preview.
+const TOOLBOX_BLOCH_STATE = new Matrix(2, 2, new Float64Array([
+    0.5, 0, 0.5, 0,
+    0.5, 0, 0.5, 0
+]));
+
 let BlochSphereDisplay = new GateBuilder().
     setSerializedIdAndSymbol("Bloch").
     setTitle("Bloch Sphere Display").
     setBlurb("Shows a wire's local state as a point on the Bloch Sphere.\nUse controls to see conditional states.").
     markAsDrawerNeedsSingleQubitDensityStats().
-    setDrawer(GatePainting.makeDisplayDrawer(args => {
+    setDrawer(args => {
+        if (args.positionInCircuit === undefined) {
+            GatePainting.paintBackground(args);
+            GatePainting.paintOutline(args);
+            paintBlochSphereDisplay(args.painter, TOOLBOX_BLOCH_STATE, args.rect);
+            return;
+        }
         let {row, col} = args.positionInCircuit;
         let ρ = args.stats.qubitDensityMatrix(col, row);
         paintBlochSphereDisplay(args.painter, ρ, args.rect, args.focusPoints);
-    })).
+    }).
     promiseHasNoNetEffectOnStateVector().
     setExtraDisableReasonFinder(args => args.isNested ? "can't\nnest\ndisplays\n(sorry)" : undefined).
     gate;
