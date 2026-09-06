@@ -28,8 +28,6 @@ import {seq} from "../base/Seq.js"
 import {WidgetPainter} from "../draw/WidgetPainter.js"
 
 class DisplayedToolbox {
-    
-
     static toolboxColorForGroup(group) {
         switch (group.hint) {
             case 'Probes': return '#F4D9D6';
@@ -48,15 +46,7 @@ class DisplayedToolbox {
     static isSingleColumnGroup(group) {
         return group.hint === 'Displays' || group.hint === 'Formulaic' || group.hint === 'Ising' || group.hint === 'Gadgets';
     }
-    /**
-     * That thing showing gates you can grab.
-     * @param {!string} name
-     * @param {!number} top
-     * @param {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} toolboxGroups
-     * @param {!boolean} labelsOnTop
-     * @param {undefined|!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} originalGroups
-     * @param {undefined|!CachablePainting=undefined} standardAppearance
-     */
+
     constructor(
             name,
             top,
@@ -74,10 +64,7 @@ class DisplayedToolbox {
         this.labelsOnTop = labelsOnTop;
         /** @type {!Array<!{hint: !string, gates: !Array<undefined|!Gate>}>} */
         this._originalGroups = originalGroups || this.toolboxGroups;
-        /**
-         * @type {!CachablePainting}
-         * @private
-         */
+        /** @type {!CachablePainting} */
         this._standardApperance = standardAppearance || new CachablePainting(
             () => ({width: this.desiredWidth(), height: this.desiredHeight()}),
             painter => {
@@ -95,9 +82,6 @@ class DisplayedToolbox {
         }
     }
 
-    /**
-     * @param {!CustomGateSet} customGateSet
-     */
     withCustomGatesInserted(customGateSet) {
         if (this._originalGroups.length === 0) {
             return this;
@@ -122,12 +106,6 @@ class DisplayedToolbox {
             this._standardApperance);
     }
 
-    /**
-     * @param {!int} groupIndex
-     * @param {!int} gateIndex
-     * @returns {!Rect}
-     * @private
-     */
     gateDrawRect(groupIndex, gateIndex) {
         let group = this.toolboxGroups[groupIndex];
         let singleColumn = DisplayedToolbox.isSingleColumnGroup(group);
@@ -148,11 +126,6 @@ class DisplayedToolbox {
             Config.GATE_RADIUS * 2);
     }
 
-    /**
-     * @param {!int} groupIndex
-     * @returns {!Rect}
-     * @private
-     */
     groupLabelRect(groupIndex) {
         if (this.labelsOnTop) {
             let r = this.gateDrawRect(groupIndex, 0);
@@ -167,12 +140,6 @@ class DisplayedToolbox {
         return new Rect(c.x - Config.TOOLBOX_GATE_SPAN, c.y+2, Config.TOOLBOX_GATE_SPAN * 2, 20);
     }
 
-    /**
-     *
-     * @param {undefined|!Point} pt
-     *
-     * @returns {undefined|!{groupIndex: !int, gateIndex: !int, gate: !Gate, rect: !Rect}}
-     */
     findGateAt(pt) {
         if (pt === undefined) {
             return undefined;
@@ -190,10 +157,6 @@ class DisplayedToolbox {
         return undefined;
     }
 
-    /**
-     * @param {!DisplayedToolbox|*} other
-     * @returns {!boolean}
-     */
     isEqualTo(other) {
         return other instanceof DisplayedToolbox &&
             this.name === other.name &&
@@ -202,10 +165,6 @@ class DisplayedToolbox {
             this.labelsOnTop === other.labelsOnTop;
     }
 
-    /**
-     * @param {!number} newTop
-     * @returns {!DisplayedToolbox}
-     */
     withTop(newTop) {
         return new DisplayedToolbox(
             this.name,
@@ -216,11 +175,6 @@ class DisplayedToolbox {
             this._standardApperance);
     }
 
-    /**
-     * @param {!number} maxWidth
-     * @returns {!Rect}
-     * @private
-     */
     desiredSize(maxWidth=Infinity) {
         let width = this.desiredWidth();
         let height = this.desiredHeight();
@@ -230,26 +184,14 @@ class DisplayedToolbox {
         return {width, height};
     }
 
-    /**
-     * @returns {!number}
-     * @private
-     */
     desiredWidth() {
         return Config.TOOLBOX_MARGIN_X * 2 + this.toolboxGroups.length * Config.TOOLBOX_GROUP_SPAN;
     }
 
-    /**
-     * @returns {!number}
-     * @private
-     */
     desiredHeight() {
         return Config.TOOLBOX_MARGIN_Y * 2 + this.groupHeight * Config.TOOLBOX_GATE_SPAN + 22;
     }
 
-    /**
-     * @param {!Painter} painter
-     * @private
-     */
     _paintStandardContents(painter) {
         for (let groupIndex = 0; groupIndex < this.toolboxGroups.length; groupIndex++) {
             let group = this.toolboxGroups[groupIndex];
@@ -264,63 +206,81 @@ class DisplayedToolbox {
                     continue;
                 }
                 let r = this.gateDrawRect(groupIndex, gateIndex);
-                let drawArgs = new GateDrawParams(
-                    painter,
-                    gate,
-                    r,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    true,
-                    color,
-                    false);
-                gate.customDrawer === undefined ? GatePainting.DEFAULT_DRAWER(drawArgs) : gate.customDrawer(drawArgs);
+                DisplayedToolbox._paintGate(painter, Hand.EMPTY, gate, r, false, CircuitStats.EMPTY, color);
             }
         }
     }
 
-    /**
-     * @param {!Painter} painter
-     * @param {!Hand} hand
-     */
-    paint(painter, hand) {
+    static _paintGate(painter, hand, gate, rect, isHighlighted, stats, toolboxFillColor=undefined) {
+        let drawer = gate.customDrawer || GatePainting.DEFAULT_DRAWER;
+        painter.startIgnoringIncomingTouchBlockers();
+        drawer(new GateDrawParams(
+            painter,
+            hand,
+            true,
+            isHighlighted,
+            false,
+            false,
+            rect,
+            gate,
+            stats,
+            undefined,
+            [],
+            undefined,
+            toolboxFillColor));
+        painter.stopIgnoringIncomingTouchBlockers();
+    }
+
+    paint(painter, stats, hand) {
         this._paintStandardContents(painter);
 
         if (hand.heldGate !== undefined) {
             let r = this.gateDrawRect(hand.grabbedGateGroupIndex, hand.grabbedGateIndex);
-            let drawArgs = new GateDrawParams(
+            DisplayedToolbox._paintGate(
                 painter,
+                hand,
                 hand.heldGate,
                 r,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
                 true,
-                Config.GATE_FILL_COLOR,
-                true);
-            GatePainting.DEFAULT_DRAWER(drawArgs);
+                stats,
+                Config.GATE_FILL_COLOR);
         }
 
         if (hand.hoveringGate !== undefined) {
             let r = this.gateDrawRect(hand.hoveringGateGroupIndex, hand.hoveringGateIndex);
-            let drawArgs = new GateDrawParams(
+            DisplayedToolbox._paintGate(
                 painter,
+                hand,
                 hand.hoveringGate,
                 r,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
                 true,
-                Config.GATE_FILL_COLOR,
-                true);
-            GatePainting.DEFAULT_DRAWER(drawArgs);
+                stats,
+                Config.GATE_FILL_COLOR);
         }
+    }
+
+    stableDuration(hand) {
+        return seq(hand.hoverPoints()).
+            map(p => this.findGateAt(p)).
+            filter(e => e !== undefined).
+            map(e => e.gate.stableDuration()).
+            min(Infinity);
+    }
+
+    tryGrab(hand) {
+        if (hand.pos === undefined || hand.isBusy()) {
+            return hand;
+        }
+
+        let f = this.findGateAt(hand.pos);
+        if (f === undefined) {
+            return hand;
+        }
+
+        if (f.gate.symbol === MysteryGateSymbol) {
+            setTimeout(() => { this.toolboxGroups[f.groupIndex].gates[f.gateIndex] = MysteryGateMaker(); }, 0.1);
+        }
+        return hand.withHeldGate(f.gate, new Point(Config.GATE_RADIUS, Config.GATE_RADIUS));
     }
 }
 
