@@ -35,7 +35,7 @@ function configurableRotationDrawer(pattern, xyz, tScale) {
         GatePainting.paintOutline(args);
         let text = pattern;
         if (!args.isInToolbox) {
-            text = text.split('f(t)').join(args.gate.param);
+            text = text.split('f(t)').join(displayFormula(args.gate.param));
         }
         GatePainting.paintGateSymbol(args, text, pattern.indexOf('^') !== -1);
         GatePainting.paintGateButton(args);
@@ -57,138 +57,51 @@ function exponent_to_A_len_painter(args) {
     GatePainting.paintGateSymbol(args, symbol);
 }
 
-const X_TO_A_SHADER = ketShader(
-    `
-        uniform float factor;
-        ${ketInputGateShaderCode('A')}
-    `,
-    `
-        float angle = read_input_A() * factor / _gen_input_span_A;
-        float c = cos(angle) * 0.5;
-        float s = sin(angle) * 0.5;
-        vec2 u = vec2(0.5 + c, s);
-        vec2 v = vec2(0.5 - c, -s);
-        vec2 amp2 = inp(1.0-out_id);
-        return cmul(u, amp) + cmul(v, amp2);
-    `);
-
-const Y_TO_A_SHADER = ketShader(
-    `
-        uniform float factor;
-        ${ketInputGateShaderCode('A')}
-    `,
-    `
-        float angle = read_input_A() * factor / _gen_input_span_A;
-        float c = cos(angle) * 0.5;
-        float s = sin(angle) * 0.5;
-        vec2 u = vec2(c + 0.5, s);
-        vec2 v = vec2(s, 0.5 - c);
-        vec2 amp2 = inp(1.0-out_id);
-        vec2 vs = v * (-1.0 + 2.0 * out_id);
-        return cmul(u, amp) + cmul(vs, amp2);
-    `);
-
-const Z_TO_A_SHADER = ketShaderPhase(
-    `
-        uniform float factor;
-        ${ketInputGateShaderCode('A')}
-    `,
-    `
-        return read_input_A() * out_id * factor / _gen_input_span_A;
-    `);
+const X_TO_A_SHADER = ketShader(`uniform float factor; ${ketInputGateShaderCode('A')}`, `float angle = read_input_A() * factor / _gen_input_span_A; float c = cos(angle) * 0.5; float s = sin(angle) * 0.5; vec2 u = vec2(0.5 + c, s); vec2 v = vec2(0.5 - c, -s); vec2 amp2 = inp(1.0-out_id); return cmul(u, amp) + cmul(v, amp2);`);
+const Y_TO_A_SHADER = ketShader(`uniform float factor; ${ketInputGateShaderCode('A')}`, `float angle = read_input_A() * factor / _gen_input_span_A; float c = cos(angle) * 0.5; float s = sin(angle) * 0.5; vec2 u = vec2(c + 0.5, s); vec2 v = vec2(s, 0.5 - c); vec2 amp2 = inp(1.0-out_id); vec2 vs = v * (-1.0 + 2.0 * out_id); return cmul(u, amp) + cmul(vs, amp2);`);
+const Z_TO_A_SHADER = ketShaderPhase(`uniform float factor;`, `return read_input_A() * out_id * factor / _gen_input_span_A;`);
 
 ParametrizedRotationGates.XToA = new GateBuilder().
-    setSerializedId("X^(A/2^n)").
-    setSymbol("X^A/2ⁿ").
-    setTitle("Parametrized X Gate").
-    setBlurb("Rotates the target by input A / 2ⁿ'th of a half turn around the X axis.\n" +
-        "n is the number of qubits in input A.").
-    setRequiredContextKeys('Input NO_DEFAULT Range A').
-    setDrawer(exponent_to_A_len_painter).
-    setActualEffectToShaderProvider(ctx => X_TO_A_SHADER.withArgs(
-        ...ketArgs(ctx, 1, ['A']),
-        WglArg.float('factor', Math.PI))).
-    promiseEffectIsStable().
-    promiseEffectIsUnitary().
-    gate;
+    setSerializedId("X^(A/2^n)").setSymbol("X^A/2ⁿ").setTitle("Parametrized X Gate").
+    setBlurb("Rotates the target by input A / 2ⁿ'th of a half turn around the X axis.\nn is the number of qubits in input A.").
+    setRequiredContextKeys('Input NO_DEFAULT Range A').setDrawer(exponent_to_A_len_painter).
+    setActualEffectToShaderProvider(ctx => X_TO_A_SHADER.withArgs(...ketArgs(ctx, 1, ['A']), WglArg.float('factor', Math.PI))).
+    promiseEffectIsStable().promiseEffectIsUnitary().gate;
 
 ParametrizedRotationGates.XToMinusA = new GateBuilder().
-    setAlternate(ParametrizedRotationGates.XToA).
-    setSerializedId("X^(-A/2^n)").
-    setSymbol("X^-A/2ⁿ").
-    setTitle("Parametrized -X Gate").
-    setBlurb("Counter-rotates the target by input A / 2ⁿ'th of a half turn around the X axis.\n" +
-        "n is the number of qubits in input A.").
-    setRequiredContextKeys('Input NO_DEFAULT Range A').
-    setDrawer(exponent_to_A_len_painter).
-    setActualEffectToShaderProvider(ctx => X_TO_A_SHADER.withArgs(
-        ...ketArgs(ctx, 1, ['A']),
-        WglArg.float('factor', -Math.PI))).
-    promiseEffectIsStable().
-    promiseEffectIsUnitary().
-    gate;
+    setAlternate(ParametrizedRotationGates.XToA).setSerializedId("X^(-A/2^n)").setSymbol("X^-A/2ⁿ").setTitle("Parametrized -X Gate").
+    setBlurb("Counter-rotates the target by input A / 2ⁿ'th of a half turn around the X axis.\nn is the number of qubits in input A.").
+    setRequiredContextKeys('Input NO_DEFAULT Range A').setDrawer(exponent_to_A_len_painter).
+    setActualEffectToShaderProvider(ctx => X_TO_A_SHADER.withArgs(...ketArgs(ctx, 1, ['A']), WglArg.float('factor', -Math.PI))).
+    promiseEffectIsStable().promiseEffectIsUnitary().gate;
 
 ParametrizedRotationGates.YToA = new GateBuilder().
-    setSerializedId("Y^(A/2^n)").
-    setSymbol("Y^A/2ⁿ").
-    setTitle("Parametrized Y Gate").
-    setBlurb("Rotates the target by input A / 2ⁿ'th of a half turn around the Y axis.\n" +
-        "n is the number of qubits in input A.").
-    setRequiredContextKeys('Input NO_DEFAULT Range A').
-    setDrawer(exponent_to_A_len_painter).
-    setActualEffectToShaderProvider(ctx => Y_TO_A_SHADER.withArgs(
-        ...ketArgs(ctx, 1, ['A']),
-        WglArg.float('factor', Math.PI))).
-    promiseEffectIsStable().
-    promiseEffectIsUnitary().
-    gate;
+    setSerializedId("Y^(A/2^n)").setSymbol("Y^A/2ⁿ").setTitle("Parametrized Y Gate").
+    setBlurb("Rotates the target by input A / 2ⁿ'th of a half turn around the Y axis.\nn is the number of qubits in input A.").
+    setRequiredContextKeys('Input NO_DEFAULT Range A').setDrawer(exponent_to_A_len_painter).
+    setActualEffectToShaderProvider(ctx => Y_TO_A_SHADER.withArgs(...ketArgs(ctx, 1, ['A']), WglArg.float('factor', Math.PI))).
+    promiseEffectIsStable().promiseEffectIsUnitary().gate;
 
 ParametrizedRotationGates.YToMinusA = new GateBuilder().
-    setAlternate(ParametrizedRotationGates.YToA).
-    setSerializedId("Y^(-A/2^n)").
-    setSymbol("Y^-A/2ⁿ").
-    setTitle("Parametrized -Y Gate").
-    setBlurb("Counter-rotates the target by input A / 2ⁿ'th of a half turn around the Y axis.\n" +
-        "n is the number of qubits in input A.").
-    setRequiredContextKeys('Input NO_DEFAULT Range A').
-    setDrawer(exponent_to_A_len_painter).
-    setActualEffectToShaderProvider(ctx => Y_TO_A_SHADER.withArgs(
-        ...ketArgs(ctx, 1, ['A']),
-        WglArg.float('factor', -Math.PI))).
-    promiseEffectIsStable().
-    promiseEffectIsUnitary().
-    gate;
+    setAlternate(ParametrizedRotationGates.YToA).setSerializedId("Y^(-A/2^n)").setSymbol("Y^-A/2ⁿ").setTitle("Parametrized -Y Gate").
+    setBlurb("Counter-rotates the target by input A / 2ⁿ'th of a half turn around the Y axis.\nn is the number of qubits in input A.").
+    setRequiredContextKeys('Input NO_DEFAULT Range A').setDrawer(exponent_to_A_len_painter).
+    setActualEffectToShaderProvider(ctx => Y_TO_A_SHADER.withArgs(...ketArgs(ctx, 1, ['A']), WglArg.float('factor', -Math.PI))).
+    promiseEffectIsStable().promiseEffectIsUnitary().gate;
 
 ParametrizedRotationGates.ZToA = new GateBuilder().
-    setSerializedId("Z^(A/2^n)").
-    setSymbol("Z^A/2ⁿ").
-    setTitle("Parametrized Z Gate").
-    setBlurb("Rotates the target by input A / 2ⁿ'th of a half turn around the Z axis.\n" +
-        "n is the number of qubits in input A.").
-    setRequiredContextKeys('Input NO_DEFAULT Range A').
-    setDrawer(exponent_to_A_len_painter).
-    setActualEffectToShaderProvider(ctx => Z_TO_A_SHADER.withArgs(
-        ...ketArgs(ctx, 1, ['A']),
-        WglArg.float('factor', Math.PI))).
-    promiseEffectIsStable().
-    promiseEffectOnlyPhases().
-    gate;
+    setSerializedId("Z^(A/2^n)").setSymbol("Z^A/2ⁿ").setTitle("Parametrized Z Gate").
+    setBlurb("Rotates the target by input A / 2ⁿ'th of a half turn around the Z axis.\nn is the number of qubits in input A.").
+    setRequiredContextKeys('Input NO_DEFAULT Range A').setDrawer(exponent_to_A_len_painter).
+    setActualEffectToShaderProvider(ctx => Z_TO_A_SHADER.withArgs(...ketArgs(ctx, 1, ['A']), WglArg.float('factor', Math.PI))).
+    promiseEffectIsStable().promiseEffectOnlyPhases().gate;
 
 ParametrizedRotationGates.ZToMinusA = new GateBuilder().
-    setAlternate(ParametrizedRotationGates.ZToA).
-    setSerializedId("Z^(-A/2^n)").
-    setSymbol("Z^-A/2ⁿ").
-    setTitle("Parametrized -Z Gate").
-    setBlurb("Counter-rotates the target by input A / 2ⁿ'th of a half turn around the Z axis.\n" +
-        "n is the number of qubits in input A.").
-    setRequiredContextKeys('Input NO_DEFAULT Range A').
-    setDrawer(exponent_to_A_len_painter).
-    setActualEffectToShaderProvider(ctx => Z_TO_A_SHADER.withArgs(
-        ...ketArgs(ctx, 1, ['A']),
-        WglArg.float('factor', -Math.PI))).
-    promiseEffectIsStable().
-    promiseEffectOnlyPhases().
-    gate;
+    setAlternate(ParametrizedRotationGates.ZToA).setSerializedId("Z^(-A/2^n)").setSymbol("Z^-A/2ⁿ").setTitle("Parametrized -Z Gate").
+    setBlurb("Counter-rotates the target by input A / 2ⁿ'th of a half turn around the Z axis.\nn is the number of qubits in input A.").
+    setRequiredContextKeys('Input NO_DEFAULT Range A').setDrawer(exponent_to_A_len_painter).
+    setActualEffectToShaderProvider(ctx => Z_TO_A_SHADER.withArgs(...ketArgs(ctx, 1, ['A']), WglArg.float('factor', -Math.PI))).
+    promiseEffectIsStable().promiseEffectOnlyPhases().gate;
 
 function parseTimeFormula(formula, time, warn) {
     let tokenMap = new Map([...PARSE_COMPLEX_TOKEN_MAP_RAD.entries()]);
@@ -208,9 +121,7 @@ function parseTimeFormula(formula, time, warn) {
 function badFormulaDetector(args) {
     if (typeof args.gate.param === 'number') return args.gate.param;
     if (typeof args.gate.param === 'string') {
-        for (let t of [0.01, 0.63, 0.98]) {
-            if (parseTimeFormula(args.gate.param, t, false) === undefined) return 'bad\nformula';
-        }
+        for (let t of [0.01, 0.63, 0.98]) if (parseTimeFormula(args.gate.param, t, false) === undefined) return 'bad\nformula';
         return undefined;
     }
     return 'bad\nvalue';
@@ -221,17 +132,10 @@ function updateUsingFormula(gate) {
     gate._stableDuration = stable ? Infinity : 0;
     if (typeof gate.param === 'string') {
         gate.width = Math.ceil((gate.param.length+1)/5);
-        gate.alternate = gate._copy();
-        gate.alternate.alternate = gate;
-        if (gate.param.startsWith('-(') && gate.param.endsWith(')')) {
-            gate.alternate.param = gate.param.substring(2, gate.param.length - 1);
-        } else {
-            gate.alternate.param = '-(' + gate.param + ')';
-        }
-    } else {
-        gate.width = 1;
-        gate.alternate = gate;
-    }
+        gate.alternate = gate._copy(); gate.alternate.alternate = gate;
+        if (gate.param.startsWith('-(') && gate.param.endsWith(')')) gate.alternate.param = gate.param.substring(2, gate.param.length - 1);
+        else gate.alternate.param = '-(' + gate.param + ')';
+    } else { gate.width = 1; gate.alternate = gate; }
 }
 
 function displayFormula(formula) {
@@ -241,12 +145,10 @@ function displayFormula(formula) {
 function angleClicker(quantityName) {
     return oldGate => {
         let txt = prompt(
-            `Enter a formula to use for the ${quantityName}.\n` +
-            "\n" +
+            `Enter a formula to use for the ${quantityName}.\n\n` +
             "The formula can depend on the time variable t.\n" +
             "Time t starts at -1, grows to +1 over time, then jumps back to -1.\n" +
-            "Invalid results will default to 0.\n" +
-            "\n" +
+            "Invalid results will default to 0.\n\n" +
             "Available constants: e, pi\n" +
             "Available functions: cos, sin, acos, asin, tan, atan, ln, sqrt, exp\n" +
             "Available operators: + * / - ^",
@@ -257,43 +159,28 @@ function angleClicker(quantityName) {
 }
 
 ParametrizedRotationGates.FormulaicRotationRx = new GateBuilder().
-    setSerializedIdAndSymbol("Rxft").
-    setTitle("Formula Rx Gate").
+    setSerializedIdAndSymbol("Rxft").setTitle("Formula Rx Gate").
     setBlurb("Rotates around X by an angle in radians determined by a formula.").
-    setDrawer(configurableRotationDrawer('X_f(t)', 0, 1)).
-    setWidth(2).
-    setExtraDisableReasonFinder(badFormulaDetector).
-    setOnClickGateFunc(angleClicker("Rx gate's angle in radians")).
+    setDrawer(configurableRotationDrawer('X_f(t)', 0, 1)).setWidth(2).
+    setExtraDisableReasonFinder(badFormulaDetector).setOnClickGateFunc(angleClicker("Rx gate's angle in radians")).
     setEffectToTimeVaryingMatrix((t, formula) => XExp((parseTimeFormula(formula, t*2-1, true) || 0) / Math.PI / 4)).
-    setWithParamPropertyRecomputeFunc(updateUsingFormula).
-    promiseEffectIsUnitary().
-    gate.withParam('pi/2');
+    setWithParamPropertyRecomputeFunc(updateUsingFormula).promiseEffectIsUnitary().gate.withParam('pi/2');
 
 ParametrizedRotationGates.FormulaicRotationRy = new GateBuilder().
-    setSerializedIdAndSymbol("Ryft").
-    setTitle("Formula Ry Gate").
+    setSerializedIdAndSymbol("Ryft").setTitle("Formula Ry Gate").
     setBlurb("Rotates around Y by an angle in radians determined by a formula.").
-    setDrawer(configurableRotationDrawer('Y_f(t)', 1, 1)).
-    setWidth(2).
-    setExtraDisableReasonFinder(badFormulaDetector).
-    setOnClickGateFunc(angleClicker("Ry gate's angle in radians")).
+    setDrawer(configurableRotationDrawer('Y_f(t)', 1, 1)).setWidth(2).
+    setExtraDisableReasonFinder(badFormulaDetector).setOnClickGateFunc(angleClicker("Ry gate's angle in radians")).
     setEffectToTimeVaryingMatrix((t, formula) => YExp((parseTimeFormula(formula, t*2-1, true) || 0) / Math.PI / 4)).
-    setWithParamPropertyRecomputeFunc(updateUsingFormula).
-    promiseEffectIsUnitary().
-    gate.withParam('pi/2');
+    setWithParamPropertyRecomputeFunc(updateUsingFormula).promiseEffectIsUnitary().gate.withParam('pi/2');
 
 ParametrizedRotationGates.FormulaicRotationRz = new GateBuilder().
-    setSerializedIdAndSymbol("Rzft").
-    setTitle("Formula Rz Gate").
+    setSerializedIdAndSymbol("Rzft").setTitle("Formula Rz Gate").
     setBlurb("Rotates around Z by an angle in radians determined by a formula.").
-    setDrawer(configurableRotationDrawer('Z_f(t)', 2, 1)).
-    setWidth(2).
-    setExtraDisableReasonFinder(badFormulaDetector).
-    setOnClickGateFunc(angleClicker("Rz gate's angle in radians")).
+    setDrawer(configurableRotationDrawer('Z_f(t)', 2, 1)).setWidth(2).
+    setExtraDisableReasonFinder(badFormulaDetector).setOnClickGateFunc(angleClicker("Rz gate's angle in radians")).
     setEffectToTimeVaryingMatrix((t, formula) => ZExp((parseTimeFormula(formula, t*2-1, true) || 0) / Math.PI / 4)).
-    setWithParamPropertyRecomputeFunc(updateUsingFormula).
-    promiseEffectOnlyPhases().
-    gate.withParam('pi/2');
+    setWithParamPropertyRecomputeFunc(updateUsingFormula).promiseEffectOnlyPhases().gate.withParam('pi/2');
 
 ParametrizedRotationGates.all = [
     ParametrizedRotationGates.XToA,
